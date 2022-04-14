@@ -141,10 +141,11 @@ class Mesh3:
     def corefine_tracked(
             self,
             other: Mesh3,
-            vert_idx: Union[str, PropertyMap[Vertex, int]],
-            edge_constrained: Union[str, PropertyMap[Edge, bool]],
+            vert_idx: str,
+            edge_constrained: str,
+            face_idx: Optional[str] = None,
     ) -> None:
-        tracker, ecm1, ecm2 = _get_corefined_properties(self, other, vert_idx, edge_constrained)
+        tracker, ecm1, ecm2 = _get_corefined_properties(self, other, vert_idx, edge_constrained, face_idx)
         sgm.corefine.corefine(self._mesh, other._mesh, ecm1.pmap, ecm2.pmap, tracker)
 
     def union_tracked(
@@ -276,10 +277,23 @@ class Mesh3:
         self._mesh.estimate_geodesic_distances(distances.pmap, src)
 
 
-def _get_corefined_properties(mesh1: Mesh3, mesh2: Mesh3, vert_idx: str, edge_constrained: str):
+def _get_corefined_properties(
+        mesh1: Mesh3,
+        mesh2: Mesh3,
+        vert_idx: str,
+        edge_constrained: str,
+        face_idx: Optional[str] = None,
+):
     vert_idx1 = mesh1.vertex_data.get_or_create_property(vert_idx, default=-1)
     vert_idx2 = mesh2.vertex_data.get_or_create_property(vert_idx, default=-1)
-    tracker = sgm.corefine.CorefinementVertexTracker(mesh1.mesh, mesh2.mesh, vert_idx1.pmap, vert_idx2.pmap)
+
+    if face_idx:
+        face_idx1 = mesh1.face_data.get_or_create_property(face_idx, default=-1)
+        face_idx2 = mesh2.face_data.get_or_create_property(face_idx, default=-1)
+        tracker = sgm.corefine.CorefinementVertexFaceTracker(
+            mesh1.mesh, mesh2.mesh, vert_idx1.pmap, vert_idx2.pmap, face_idx1.pmap, face_idx2.pmap)
+    else:
+        tracker = sgm.corefine.CorefinementVertexTracker(mesh1.mesh, mesh2.mesh, vert_idx1.pmap, vert_idx2.pmap)
     ecm1 = mesh1.edge_data.get_or_create_property(edge_constrained, default=False)
     ecm2 = mesh2.edge_data.get_or_create_property(edge_constrained, default=False)
     return tracker, ecm1, ecm2
