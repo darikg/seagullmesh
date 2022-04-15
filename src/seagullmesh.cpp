@@ -8,6 +8,7 @@ void init_meshing(py::module&);
 void init_locate(py::module&);
 void init_parametrize(py::module&);
 void init_triangulate(py::module&);
+void init_poisson_reconstruct(py::module&);
 
 PYBIND11_MODULE(_seagullmesh, m) {
     m.doc() = "";
@@ -18,4 +19,5 @@ PYBIND11_MODULE(_seagullmesh, m) {
     init_locate(m);
     init_parametrize(m);
     init_triangulate(m);
+    init_poisson_reconstruct(m);
 }

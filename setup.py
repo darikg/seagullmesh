@@ -125,6 +125,7 @@ ext_modules = [
             'src/locate.cpp',
             'src/parametrize.cpp',
             'src/triangulate.cpp',
+            'src/poisson_reconstruct.cpp',
         ],
         include_dirs=include_dirs,
         library_dirs=library_dirs,
