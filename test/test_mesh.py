@@ -78,6 +78,10 @@ def test_scalar_properties(key_type, val_type):
     keys = d.mesh_keys
     key = keys[0]
     d['foo'][key] = val_type(1)
+
+    assert 'foo' in d
+    assert 'bar' not in d
+
     val = d['foo'][key]
     assert val == val_type(1)
 

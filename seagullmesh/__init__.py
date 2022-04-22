@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Optional, TYPE_CHECKING, Union, Sequence, Protocol, TypeVar, overload, Tuple, Generic, List
+from typing import Any, Optional, TYPE_CHECKING, Union, Sequence, Protocol, TypeVar, overload, Tuple, Generic, List, \
+    Iterator
 
 from numpy import ndarray, zeros_like, array, sqrt, concatenate, ones
 from seagullmesh._seagullmesh.mesh import (  # noqa
@@ -474,3 +475,15 @@ class MeshData(Generic[Key]):
         default = zeros_like(value, shape=()).item()
         pmap = self.get_or_create_property(key, default)
         pmap[self.mesh_keys] = value
+
+    def items(self) -> Iterator[Tuple[str, PropertyMap[Key, Any]]]:
+        yield from self._data.items()
+
+    def values(self) -> Iterator[PropertyMap[Key, Any]]:
+        yield from self._data.values()
+
+    def keys(self) -> Iterator[str]:
+        yield from self._data.keys()
+
+    def __iter__(self) -> Iterator[str]:
+        yield from self._data.__iter__()
