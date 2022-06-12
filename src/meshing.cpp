@@ -5,6 +5,7 @@
 #include <CGAL/Polygon_mesh_processing/smooth_mesh.h>
 #include <CGAL/Polygon_mesh_processing/smooth_shape.h>
 #include <CGAL/Polygon_mesh_processing/refine.h>
+#include <CGAL/Polygon_mesh_processing/self_intersections.h>
 
 namespace PMP = CGAL::Polygon_mesh_processing;
 
@@ -75,6 +76,9 @@ void init_meshing(py::module &m) {
         .def("smooth_shape", [](Mesh3& mesh, const std::vector<F>& faces, const double time, unsigned int n_iter) {
             auto params = PMP::parameters::number_of_iterations(n_iter);
             PMP::smooth_shape(faces, mesh, time, params);
+        })
+        .def("does_self_intersect", [](Mesh3& mesh) {
+            return PMP::does_self_intersect(mesh);
         })
     ;
 }

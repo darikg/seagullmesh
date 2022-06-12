@@ -201,6 +201,10 @@ class Mesh3:
         """
         sgm.meshing.smooth_shape(self._mesh, faces, time, n_iter)
 
+    def does_self_intersect(self) -> bool:
+        """Returns True if the mesh self-intersects"""
+        return sgm.meshing.does_self_intersect(self._mesh)
+
     def aabb_tree(self, vert_points: Union[str, VertexPointMap] = 'points'):
         """Construct an axis-aligned bounding box tree for accelerated point location by `Mesh3.locate_points
 
