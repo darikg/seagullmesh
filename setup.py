@@ -201,11 +201,12 @@ class BuildExt(build_ext):
             opts.append(cpp_flag(self.compiler))
             if has_flag(self.compiler, '-fvisibility=hidden'):
                 opts.append('-fvisibility=hidden')
+            if 'CGAL_DEBUG' not in os.environ:
+                opts.append('-DCGAL_DEBUG=1')
         elif ct == 'msvc':
             opts.append('/DVERSION_INFO=\\"%s\\"' % self.distribution.get_version())
-
-        if 'CGAL_DEBUG' not in os.environ:
-            opts.append('/DCGAL_DEBUG=1')
+            if 'CGAL_DEBUG' not in os.environ:
+                opts.append('/DCGAL_DEBUG=1')
 
         for ext in self.extensions:
             ext.extra_compile_args = opts
