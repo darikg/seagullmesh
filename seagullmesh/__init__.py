@@ -262,12 +262,12 @@ class Mesh3:
         """Performs least-squares conformal mapping"""
         if isinstance(uv_map, str):
             uv_map = self.vertex_data.get_or_create_property(uv_map, default=Point2(0, 0))
-        sgm.parametrize.lscm(self._mesh, uv_map)
+        sgm.parametrize.lscm(self._mesh, uv_map.pmap)
 
     def arap(self, uv_map: Union[str, UvMap]):
         """Performs as-rigid-as-possible parameterization"""
         uv_map = self.vertex_data.get_or_create_property(uv_map, default=Point2(0, 0))
-        sgm.parametrize.arap(self._mesh, uv_map)
+        sgm.parametrize.arap(self._mesh, uv_map.pmap)
 
     def estimate_geodesic_distances(
             self,
