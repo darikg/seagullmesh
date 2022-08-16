@@ -57,11 +57,8 @@ class Mesh3:
 
     is_valid = property(lambda self: self._mesh.is_valid)
 
-    @staticmethod
-    def tetrahedron():
-        verts = array([[1, 1, 1], [-1, 1, -1], [1, -1, -1], [-1, -1, 1]], dtype='float')
-        faces = array([[2, 1, 0], [2, 3, 1], [3, 2, 0], [1, 3, 0]], dtype='int')
-        return Mesh3.from_polygon_soup(verts, faces)
+    def volume(self) -> float:
+        return self._mesh.volume()
 
     def edge_vertices(self, edges: Edges) -> A:
         """Returns a len(edges) * 2 array of integer vertex indices"""
