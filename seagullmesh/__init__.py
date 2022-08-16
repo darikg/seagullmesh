@@ -55,6 +55,9 @@ class Mesh3:
 
     is_valid = property(lambda self: self._mesh.is_valid)
 
+    def volume(self) -> float:
+        return self._mesh.volume()
+
     def edge_vertices(self, edges: Edges) -> A:
         """Returns a len(edges) * 2 array of integer vertex indices"""
         return self._mesh.edge_vertices(edges)

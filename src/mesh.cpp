@@ -8,6 +8,7 @@
 #include <CGAL/Surface_mesh/IO/PLY.h>
 #include <CGAL/Surface_mesh/IO/OFF.h>
 #include <CGAL/Heat_method_3/Surface_mesh_geodesic_distances_3.h>
+#include <CGAL/Polygon_mesh_processing/measure.h>
 
 namespace PMP = CGAL::Polygon_mesh_processing;
 
@@ -177,6 +178,7 @@ void init_mesh(py::module &m) {
             }
             return normals;
         })
+        .def("volume", [](const Mesh3& mesh) {return PMP::volume(mesh);})
         .def("estimate_geodesic_distances", [](const Mesh3& mesh, Mesh3::Property_map<V, double>& distances, V source) {
             CGAL::Heat_method_3::estimate_geodesic_distances(mesh, distances, source);
         })
