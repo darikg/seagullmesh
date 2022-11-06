@@ -1,5 +1,6 @@
 #include "seagullmesh.hpp"
 #include <CGAL/Polygon_mesh_processing/corefinement.h>
+#include <CGAL/Polygon_mesh_processing/clip.h>
 
 namespace PMP = CGAL::Polygon_mesh_processing;
 
@@ -113,6 +114,24 @@ void init_corefine(py::module &m) {
         auto params1 = PMP::parameters::visitor(tracker).edge_is_constrained_map(ecm1);
         auto params2 = PMP::parameters::edge_is_constrained_map(ecm2);
         PMP::corefine(mesh1, mesh2, params1, params2);
+    })
+    .def("clip", [](Mesh3& mesh1, Mesh3& mesh2, CorefinementVertexTracker& tracker){
+        auto params1 = PMP::parameters::visitor(tracker);
+        PMP::clip(mesh1, mesh2, params1);
+        mesh1.collect_garbage();
+    })
+    .def("clip", [](Mesh3& mesh1, Mesh3& mesh2, CorefinementVertexFaceTracker& tracker){
+        auto params1 = PMP::parameters::visitor(tracker);
+        PMP::clip(mesh1, mesh2, params1);
+        mesh1.collect_garbage();
+    })
+    .def("split", [](Mesh3& mesh1, Mesh3& mesh2, CorefinementVertexTracker& tracker){
+        auto params1 = PMP::parameters::visitor(tracker);
+        PMP::split(mesh1, mesh2, params1);
+    })
+    .def("split", [](Mesh3& mesh1, Mesh3& mesh2, CorefinementVertexFaceTracker& tracker){
+        auto params1 = PMP::parameters::visitor(tracker);
+        PMP::split(mesh1, mesh2, params1);
     })
     .def("difference", [](Mesh3& mesh1, Mesh3& mesh2, Mesh3& out) {
         bool success = PMP::corefine_and_compute_difference(mesh1, mesh2, out);

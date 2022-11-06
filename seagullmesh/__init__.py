@@ -152,6 +152,10 @@ class Mesh3:
         tracker, ecm1, ecm2 = _get_corefined_properties(self, other, vert_idx, edge_constrained, face_idx)
         sgm.corefine.corefine(self._mesh, other._mesh, ecm1.pmap, ecm2.pmap, tracker)
 
+    def clip_tracked(self, other: Mesh3, vert_idx: str, face_idx: Optional[str] = None):
+        tracker = _get_corefined_properties(self, other, vert_idx=vert_idx, face_idx=face_idx)
+        sgm.corefine.clip(self._mesh, other._mesh, tracker)
+
     def union_tracked(
             self,
             other: Mesh3,
@@ -289,7 +293,7 @@ def _get_corefined_properties(
         mesh1: Mesh3,
         mesh2: Mesh3,
         vert_idx: str,
-        edge_constrained: str,
+        edge_constrained: Optional[str] = None,
         face_idx: Optional[str] = None,
 ):
     vert_idx1 = mesh1.vertex_data.get_or_create_property(vert_idx, default=-1)
@@ -302,9 +306,13 @@ def _get_corefined_properties(
             mesh1.mesh, mesh2.mesh, vert_idx1.pmap, vert_idx2.pmap, face_idx1.pmap, face_idx2.pmap)
     else:
         tracker = sgm.corefine.CorefinementVertexTracker(mesh1.mesh, mesh2.mesh, vert_idx1.pmap, vert_idx2.pmap)
-    ecm1 = mesh1.edge_data.get_or_create_property(edge_constrained, default=False)
-    ecm2 = mesh2.edge_data.get_or_create_property(edge_constrained, default=False)
-    return tracker, ecm1, ecm2
+
+    if edge_constrained:
+        ecm1 = mesh1.edge_data.get_or_create_property(edge_constrained, default=False)
+        ecm2 = mesh2.edge_data.get_or_create_property(edge_constrained, default=False)
+        return tracker, ecm1, ecm2
+    else:
+        return tracker
 
 
 Key = TypeVar('Key', Vertex, Face, Edge, Halfedge)
