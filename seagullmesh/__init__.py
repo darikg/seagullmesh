@@ -63,6 +63,9 @@ class Mesh3:
         """Given a list of vertices or faces, returns a sequence containing the original and adjacent elements"""
         return self._mesh.expand_selection(selection)
 
+    def vertices_to_faces(self, verts: Vertices) -> Faces:
+        return self._mesh.vertices_to_faces(verts)
+
     def to_polygon_soup(self) -> Tuple[A, A]:
         """Returns vertices (nv * 3) and faces (nf * 3) array"""
         return self._mesh.to_polygon_soup()

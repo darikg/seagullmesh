@@ -151,6 +151,18 @@ void init_mesh(py::module &m) {
             }
             return expanded;
         })
+        .def("vertices_to_faces", [](Mesh3& mesh, const std::vector<V>& verts) {
+            std::set<F> faces;
+            for (V v : verts) {
+                for (F f : faces_around_target(mesh.halfedge(v), mesh)) {
+                    // if (mesh.is_valid(f)) {
+                    if (f != mesh.null_face()) {
+                        faces.insert(f);
+                    }
+                }
+            }
+            return faces;
+        })
         .def("to_polygon_soup", [](const Mesh3& mesh) {
             std::vector<Point3> verts;
             std::vector<std::vector<size_t>> faces;
