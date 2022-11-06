@@ -132,7 +132,9 @@ void init_mesh(py::module &m) {
             for (V v0 : selected) {
                 expanded.insert(v0);
                 for (V v1 : vertices_around_target(mesh.halfedge(v0), mesh)) {
-                    expanded.insert(v1);
+                    if (v1 != mesh.null_vertex()) {
+                        expanded.insert(v1);
+                    }
                 }
             }
             return expanded;
@@ -142,7 +144,9 @@ void init_mesh(py::module &m) {
             for (F f0 : selected) {
                 expanded.insert(f0);
                 for (F f1 : faces_around_face(mesh.halfedge(f0), mesh)) {
-                    expanded.insert(f1);
+                    if (f1 != mesh.null_face()) {
+                        expanded.insert(f1);
+                    }
                 }
             }
             return expanded;
