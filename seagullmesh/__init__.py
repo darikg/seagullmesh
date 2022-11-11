@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Optional, TYPE_CHECKING, Union, Sequence, Protocol, TypeVar, overload, Tuple, Generic, List, \
-    Iterator
+    Iterator, Type
 
 from numpy import ndarray, zeros_like, array, sqrt, concatenate, ones
 from seagullmesh._seagullmesh.mesh import (  # noqa
@@ -326,6 +326,10 @@ class Mesh3:
         distances = self.vertex_data.get_or_create_property(distance_prop, default=0.0)
         self._mesh.estimate_geodesic_distances(distances.pmap, src)
 
+    def label_border_vertices(self, is_border: Union[str, PropertyMap[Vertex, bool]]):
+        is_border = self.vertex_data.get_or_create_property(is_border, default=False)
+        sgm.border.label_border_vertices(self._mesh, is_border.pmap)
+
 
 def _get_corefined_properties(
         mesh1: Mesh3,
@@ -354,7 +358,7 @@ def _get_corefined_properties(
 
 
 Key = TypeVar('Key', Vertex, Face, Edge, Halfedge)
-Val = TypeVar('Val', int, bool, Point2, Point3, Vector2, Vector3)
+Val = TypeVar('Val', int, bool, float, Point2, Point3, Vector2, Vector3)
 
 
 class PropertyMap(Generic[Key, Val], ABC):
