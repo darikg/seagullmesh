@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Optional, TYPE_CHECKING, Union, Sequence, Protocol, TypeVar, overload, Tuple, Generic, List, \
     Iterator
@@ -27,7 +28,7 @@ if TYPE_CHECKING:
     try:
         import pyvista as pv  # noqa
     except ImportError:
-        pass
+        pv = None
 
 A = ndarray
 
@@ -509,3 +510,25 @@ class MeshData(Generic[Key]):
 
     def __iter__(self) -> Iterator[str]:
         yield from self._data.__iter__()
+
+
+Vcm = Union[PropertyMap[Vertex, bool], str]
+Ecm = Union[PropertyMap[Edge, bool], str]
+
+
+@contextmanager
+def vert_edge_constraint_maps(mesh: Mesh3, vcm: Vcm, ecm: Optional[Ecm]):
+    # Easier to add and remove placeholder propertymaps instead of c++ overloading
+    _vcm = mesh.vertex_data.get_or_create_property(vcm, default=False)
+    if ecm is not None:
+        _ecm = mesh.edge_data.get_or_create_property(ecm, default=False)
+    else:
+        _ecm = None
+
+    try:
+        yield _vcm, _ecm
+    finally:
+        if vcm == '_vcm':
+            mesh.vertex_data.remove_property('_vcm')
+        if ecm == '_ecm':
+            mesh.edge_data.remove_property('_ecm')
