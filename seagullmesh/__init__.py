@@ -448,7 +448,7 @@ UvMap = PropertyMap[Vertex, Point2]
 
 class MeshData(Generic[Key]):
     def __init__(self, mesh: Mesh3, add_fn, key_name: str):
-        self._data = {}
+        self._data: Dict[str, PropertyMap[Key]] = {}
         self._mesh = mesh
         self._add_fn = add_fn
         self._key_name = key_name
@@ -471,6 +471,10 @@ class MeshData(Generic[Key]):
         self._data[key] = pmap
         return pmap
 
+    def remove_property(self, key: str):
+        pmap = self._data.pop(key)
+        sgm.properties.remove_property_map(self._mesh, pmap.pmap)
+
     def assign_property_map(self, name: str, cls: Type[PropertyMap], pmap):
         self._data[name] = cls(pmap=pmap, data=self)
 
@@ -485,6 +489,9 @@ class MeshData(Generic[Key]):
 
     def __getitem__(self, item: str) -> PropertyMap[Key, Any]:
         return self._data[item]
+
+    def __delitem__(self, item: str):
+        self.remove_property(item)
 
     def __setitem__(self, key: str, value: ndarray):
         default = zeros_like(value, shape=()).item()

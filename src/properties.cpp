@@ -11,10 +11,16 @@ auto add_property_map(Mesh3& mesh, std::string name, const Val default_val) {
     return pmap;
 }
 
+
 template <typename Key, typename Val>
 auto define_property_map(py::module &m, std::string name) {
     // https://stackoverflow.com/a/47749076/7519203
     using PMap = typename Mesh3::Property_map<Key, Val>;
+
+    m.def("remove_property_map", [](Mesh3& mesh, PMap& pmap) {
+        mesh.remove_property_map(pmap);
+    });
+
     return py::class_<PMap>(m, name.c_str(), py::buffer_protocol(), py::dynamic_attr())
         .def("__getitem__", [](const PMap& pmap, const Key& key) {
             Val val = pmap[key];

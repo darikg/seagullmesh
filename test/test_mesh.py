@@ -88,6 +88,10 @@ def test_scalar_properties(key_type, val_type):
     d['foo'][keys[:2]] = [val_type(1), val_type(1)]
     assert d['foo'][keys[0]] == val_type(1) and d['foo'][keys[1]] == val_type(1)
 
+    d.remove_property('foo')
+    assert 'foo' not in d.mesh_keys
+    assert 'foo' not in d
+
 
 @pytest.mark.parametrize('key_type', ['vertex', 'face', 'edge', 'halfedge'])
 @pytest.mark.parametrize('val_type', [Point2, Point3, Vector2, Vector3])
