@@ -2,10 +2,11 @@
 
 #include <CGAL/Polygon_mesh_processing/remesh.h>
 #include <CGAL/Polygon_mesh_processing/fair.h>
-#include <CGAL/Polygon_mesh_processing/smooth_mesh.h>
+#include <CGAL/Polygon_mesh_processing/angle_and_area_smoothing.h>
 #include <CGAL/Polygon_mesh_processing/smooth_shape.h>
 #include <CGAL/Polygon_mesh_processing/refine.h>
 #include <CGAL/Polygon_mesh_processing/self_intersections.h>
+#include <CGAL/Polygon_mesh_processing/tangential_relaxation.h>
 
 namespace PMP = CGAL::Polygon_mesh_processing;
 
@@ -13,6 +14,7 @@ typedef std::vector<V>                     Verts;
 typedef std::vector<F>                     Faces;
 typedef Mesh3::Property_map<V, Point3>     VertPoint;
 typedef Mesh3::Property_map<V, bool>       VertBool;
+typedef Mesh3::Property_map<E, bool>       EdgeBool;
 
 
 struct VertexPointMapWrapper {
@@ -69,12 +71,55 @@ void init_meshing(py::module &m) {
             PMP::refine(mesh, faces, std::back_inserter(new_faces), std::back_inserter(new_verts), params);
             return std::make_tuple(new_verts, new_faces);
         })
-        .def("smooth_mesh", [](Mesh3& mesh, const std::vector<F>& faces, unsigned int n_iter, bool use_safety_constraints) {
-            auto params = PMP::parameters::number_of_iterations(n_iter).use_safety_constraints(use_safety_constraints);
-            PMP::smooth_mesh(faces, mesh, params);
+        .def("smooth_angle_and_area", [](
+            Mesh3& mesh, 
+            const std::vector<F>& faces, 
+            unsigned int n_iter,
+            bool use_area_smoothing,
+            bool use_angle_smoothing,
+            bool use_safety_constraints,
+            bool do_project, 
+            VertBool& vertex_is_constrained_map,
+            EdgeBool& edge_is_constrained_map
+        ) {
+            auto params = PMP::parameters::
+                number_of_iterations(n_iter)
+                .use_area_smoothing(use_area_smoothing)
+                .use_angle_smoothing(use_angle_smoothing)
+                .use_safety_constraints(use_safety_constraints)
+                .do_project(do_project)
+                .vertex_is_constrained_map(vertex_is_constrained_map)
+                .edge_is_constrained_map(edge_is_constrained_map)
+            ;
+            PMP::angle_and_area_smoothing(faces, mesh, params);
         })
-        .def("smooth_shape", [](Mesh3& mesh, const std::vector<F>& faces, const double time, unsigned int n_iter) {
-            auto params = PMP::parameters::number_of_iterations(n_iter);
+        .def("tangential_relaxation", [](
+            Mesh3& mesh,
+            const std::vector<V>& verts,
+            unsigned int n_iter,
+            bool relax_constraints,
+            VertBool& vertex_is_constrained_map,
+            EdgeBool& edge_is_constrained_map
+        ) {
+            auto params = PMP::parameters::
+                number_of_iterations(n_iter)
+                .relax_constraints(relax_constraints)
+                .vertex_is_constrained_map(vertex_is_constrained_map)
+                .edge_is_constrained_map(edge_is_constrained_map)
+            ;
+            PMP::tangential_relaxation(verts, mesh, params);
+        })
+        .def("smooth_shape", [](
+            Mesh3& mesh, 
+            const std::vector<F>& faces, 
+            const double time, 
+            unsigned int n_iter,
+            VertBool& vertex_is_constrained_map
+        ) {
+            auto params = PMP::parameters::
+                number_of_iterations(n_iter)
+                .vertex_is_constrained_map(vertex_is_constrained_map)
+            ;
             PMP::smooth_shape(faces, mesh, time, params);
         })
         .def("does_self_intersect", [](Mesh3& mesh) {

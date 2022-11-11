@@ -197,17 +197,54 @@ class Mesh3:
         """
         return sgm.meshing.refine(self._mesh, faces, density)
 
-    def smooth_mesh(self, faces: Faces, n_iter: int, use_safety_constraints=False) -> None:
-        """Smooth the specified faces"""
-        sgm.meshing.smooth_mesh(self._mesh, faces, n_iter, use_safety_constraints)
+    def smooth_angle_and_area(
+            self,
+            faces: Faces,
+            n_iter: int,
+            use_area_smoothing=True,
+            use_angle_smoothing=True,
+            use_safety_constraints=False,
+            do_project=True,
+            vertex_constrained: Vcm = '_vcm',
+            edge_constrained: Ecm = '_ecm',
+    ) -> None:
+        """Smooths a triangulated region of a polygon mesh
 
-    def smooth_shape(self, faces: Faces, time: float, n_iter: int) -> None:
+        This function attempts to make the triangle angle and area distributions as uniform as possible by moving
+        (non-constrained) vertices.
+        """
+
+        with vert_edge_constraint_maps(self, vcm=vertex_constrained, ecm=edge_constrained) as (vcm, ecm):
+            sgm.meshing.smooth_angle_and_area(
+                self._mesh, faces, n_iter, use_area_smoothing, use_angle_smoothing,
+                use_safety_constraints, do_project, vcm.pmap, ecm.pmap)
+
+    def tangential_relaxation(
+            self,
+            verts: Vertices,
+            n_iter: int,
+            relax_constraints=False,
+            vertex_constrained: Vcm = '_vcm',
+            edge_constrained: Ecm = '_ecm',
+    ) -> None:
+        with vert_edge_constraint_maps(self, vcm=vertex_constrained, ecm=edge_constrained) as (vcm, ecm):
+            sgm.meshing.tangential_relaxation(
+                self._mesh, verts, n_iter, relax_constraints, vcm.pmap, ecm.pmap)
+
+    def smooth_shape(
+            self,
+            faces: Faces,
+            time: float,
+            n_iter: int,
+            vertex_constrained: Vcm = '_vcm',
+    ) -> None:
         """Smooth the mesh shape by mean curvature flow
 
         A larger time step results in faster convergence but details may be distorted to a larger extent compared to
          more iterations with a smaller step. Typical values scale in the interval (1e-6, 1]
         """
-        sgm.meshing.smooth_shape(self._mesh, faces, time, n_iter)
+        with vert_edge_constraint_maps(self, vcm=vertex_constrained, ecm=None) as (vcm, _):
+            sgm.meshing.smooth_shape(self._mesh, faces, time, n_iter, vcm.pmap)
 
     def does_self_intersect(self) -> bool:
         """Returns True if the mesh self-intersects"""

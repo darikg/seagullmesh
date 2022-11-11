@@ -7,7 +7,8 @@ assorted extras.
 ## Installation
 
 ```shell
-conda create --name seagull -c conda-forge cgal-cpp eigen pybind11 pyvista  # (pyvista optional)
+# pyvista and ceres-solver are optional
+conda create --name seagull -c conda-forge cgal-cpp pybind11 eigen ceres-solver pyvista
 conda activate seagull
 ```
 
@@ -68,6 +69,7 @@ my_property_vals = mesh.vertex_data['my_property2'][mesh.vertices]
 Numpy indexing is also supported for convenience:
 ```python
 first_10 = mesh.vertex_data['my_property2'][:10]
+
 ```
 
 Non-scalar valued properties are supported in the form of CGAL's `Point_2`, `Point_3`, `Vector_2`, `Vector_3` objects must be constructed manually. Conversion to and from numpy arrays is handled automatically.
@@ -86,8 +88,9 @@ From [PMP Meshing](https://doc.cgal.org/latest/Polygon_mesh_processing/group__PM
   - `mesh.remesh(faces, target_edge_length, n_iterations)`
   - `mesh.fair(vertices, fairing_continuity)`
   - `mesh.refine(faces, density)`
-  - `mesh.smooth_mesh(faces, n_iterations)`
+  - `mesh.smooth_angle_and_area(faces, n_iterations, do_angle_smoothing, do_area_smoothing)`
   - `mesh.smooth_shape(faces, time)`
+  - `mesh.tangential_relaxation(verts)`
 
 From [PMP Corefinement and Boolean Operations](https://doc.cgal.org/latest/Polygon_mesh_processing/group__PMP__corefinement__grp.html)
   - `mesh.corefine(other)`
