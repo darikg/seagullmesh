@@ -39,18 +39,41 @@ struct VertexPointMapWrapper {
 
 void init_meshing(py::module &m) {
     m.def_submodule("meshing")
-        .def("remesh", [](Mesh3& mesh, const Faces& faces, double target_edge_length, unsigned int n_iter, bool protect_constraints) {
-            auto params = PMP::parameters::number_of_iterations(n_iter).protect_constraints(protect_constraints);
+        .def("remesh", [](
+            Mesh3& mesh, 
+            const Faces& faces, 
+            double target_edge_length, 
+            unsigned int n_iter, 
+            bool protect_constraints,
+            VertBool& vertex_is_constrained_map,
+            EdgeBool& edge_is_constrained_map
+        ) {
+            auto params = PMP::parameters::
+                number_of_iterations(n_iter)
+                .protect_constraints(protect_constraints)
+                .vertex_is_constrained_map(vertex_is_constrained_map)
+                .edge_is_constrained_map(edge_is_constrained_map)
+            ;
             PMP::isotropic_remeshing(faces, target_edge_length, mesh, params);
         })
-        .def("remesh", [](Mesh3& mesh, const Faces& faces, double target_edge_length, unsigned int n_iter,
-                        const bool protect_constraints, VertBool& touched) {
+        .def("remesh", [](
+            Mesh3& mesh, 
+            const Faces& faces, 
+            double target_edge_length, 
+            unsigned int n_iter,
+            const bool protect_constraints,
+            VertBool& touched,
+            VertBool& vertex_is_constrained_map,
+            EdgeBool& edge_is_constrained_map
+        ) {
 
             auto points = mesh.points();
             VertexPointMapWrapper point_map = VertexPointMapWrapper(points, touched);
             auto params = PMP::parameters::number_of_iterations(n_iter)
                 .vertex_point_map(point_map)
                 .protect_constraints(protect_constraints)
+                .vertex_is_constrained_map(vertex_is_constrained_map)
+                .edge_is_constrained_map(edge_is_constrained_map)
             ;
 
             PMP::isotropic_remeshing(faces, target_edge_length, mesh, params);

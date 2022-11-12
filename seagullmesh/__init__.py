@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Optional, TYPE_CHECKING, Union, Sequence, Protocol, TypeVar, overload, Tuple, Generic, List, \
-    Iterator, Type
+    Iterator, Type, Dict
 
 from numpy import ndarray, zeros_like, array, sqrt, concatenate, ones
 from seagullmesh._seagullmesh.mesh import (  # noqa
@@ -161,7 +161,7 @@ class Mesh3:
             self,
             other: Mesh3,
             vert_idx: Union[str, PropertyMap[Vertex, int]],
-            edge_constrained: Union[str, PropertyMap[Edge, bool]],
+            edge_constrained: Ecm,
     ) -> None:
         tracker, ecm1, ecm2 = _get_corefined_properties(self, other, vert_idx, edge_constrained)
         sgm.corefine.union(self._mesh, other._mesh, ecm1.pmap, ecm2.pmap, tracker)
@@ -172,18 +172,23 @@ class Mesh3:
             target_edge_length: float,
             n_iter: int,
             protect_constraints=False,
-            touched_map: Optional[Union[str, PropertyMap[Vertex, bool]]] = None,
+            vertex_constrained: Optional[Vcm] = '_vcm',
+            edge_constrained: Optional[Ecm] = '_ecm',
+            touched_map: Optional[Vcm] = None,
     ) -> None:
         """Perform isotropic remeshing on the specified faces.
 
         If an optional `touched_map` mapping vertices to bools is specified, vertices that were created or moved during
         the remeshing are flagged as True.
         """
-        if touched_map:
-            touched = self.vertex_data.get_or_create_property(touched_map, default=False)
-            sgm.meshing.remesh(self._mesh, faces, target_edge_length, n_iter, protect_constraints, touched.pmap)
-        else:
-            sgm.meshing.remesh(self._mesh, faces, target_edge_length, n_iter, protect_constraints)
+        with vert_edge_constraint_maps(self, vcm=vertex_constrained, ecm=edge_constrained) as (vcm, ecm):
+            if touched_map:
+                touched = self.vertex_data.get_or_create_property(touched_map, default=False)
+                sgm.meshing.remesh(
+                    self._mesh, faces, target_edge_length, n_iter, protect_constraints, touched.pmap, vcm.pmap, ecm.pmap)
+            else:
+                sgm.meshing.remesh(
+                    self._mesh, faces, target_edge_length, n_iter, protect_constraints, vcm.pmap, ecm.pmap)
 
     def fair(self, verts: Vertices, continuity=0) -> None:
         """Fair the specified mesh vertices"""
