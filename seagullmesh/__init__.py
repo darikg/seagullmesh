@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, Optional, TYPE_CHECKING, Union, Sequence, Protocol, TypeVar, overload, Tuple, Generic, List, \
     Iterator, Type, Dict
 
-from numpy import ndarray, zeros_like, array, sqrt, concatenate, ones
+from numpy import ndarray, zeros_like, array, sqrt, concatenate, ones, full
 from seagullmesh._seagullmesh.mesh import (  # noqa
     Mesh3 as _Mesh3,
     polygon_soup_to_mesh3,
@@ -117,8 +117,8 @@ class Mesh3:
         """
         from pyvista import PolyData  # noqa
         verts, _faces = self._mesh.to_polygon_soup()
-        faces = concatenate([3 * ones((_faces.shape[0], 1), dtype='int'), _faces.astype('int')], axis=1)
-        mesh = PolyData(verts, faces=faces.reshape(-1))
+        faces = concatenate([full((_faces.shape[0], 1), 3, dtype='int'), _faces.astype('int')], axis=1)
+        mesh = PolyData(verts, faces=faces)
         return mesh
 
     def corefine(self, other: Mesh3) -> None:
