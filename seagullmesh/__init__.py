@@ -104,8 +104,7 @@ class Mesh3:
 
         Currently, all point/cell data is ignored.
         """
-        assert polydata.is_all_triangles
-        from pyvista._vtk import vtk_to_numpy  # noqa
+        from vtkmodules.util.numpy_support import vtk_to_numpy
         cells = vtk_to_numpy(polydata.GetPolys().GetConnectivityArray())
         faces = cells.reshape(-1, 3)
         return Mesh3.from_polygon_soup(polydata.points, faces, orient=orient)
