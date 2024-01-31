@@ -573,7 +573,7 @@ def vert_edge_constraint_maps(mesh: Mesh3, vcm: Vcm, ecm: Optional[Ecm]):
     try:
         yield _vcm, _ecm
     finally:
-        if vcm == '_vcm':
+        if isinstance(vcm, str) and vcm == '_vcm':
             mesh.vertex_data.remove_property('_vcm')
-        if ecm == '_ecm':
+        if isinstance(ecm, str) and ecm == '_ecm':
             mesh.edge_data.remove_property('_ecm')
