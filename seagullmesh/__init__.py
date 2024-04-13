@@ -334,6 +334,22 @@ class Mesh3:
         is_border = self.vertex_data.get_or_create_property(is_border, default=False)
         sgm.border.label_border_vertices(self._mesh, is_border.pmap)
 
+    def remesh_planar_patches(
+            self,
+            edge_constrained: Ecm = '_ecm',
+            face_patch_map: FaceMap = '_face_map',
+            cosine_of_maximum_angle: float = 1.0,
+    ) -> Mesh3:
+        ecm = self.edge_data.get_or_create_property(edge_constrained, default=False)
+        fpm = self.face_data.get_or_create_property(face_patch_map, default=-1)
+        out = sgm.meshing.remesh_planar_patches(self._mesh, ecm, fpm, cosine_of_maximum_angle)
+
+        if is_str_pmap(edge_constrained, '_ecm'):
+            self.edge_data.remove_property('_ecm')
+        if is_str_pmap(face_patch_map, '_face_map'):
+            self.face_data.remove_property('_face_map')
+
+        return Mesh3(out)
 
 def _get_corefined_properties(
         mesh1: Mesh3,
@@ -559,6 +575,11 @@ class MeshData(Generic[Key]):
 
 Vcm = Union[PropertyMap[Vertex, bool], str]
 Ecm = Union[PropertyMap[Edge, bool], str]
+FaceMap = Union[PropertyMap[Face, Face], str]
+
+
+def is_str_pmap(pmap: Union[PropertyMap, str], name: str):
+    return isinstance(pmap, str) and pmap == name
 
 
 @contextmanager
@@ -573,7 +594,7 @@ def vert_edge_constraint_maps(mesh: Mesh3, vcm: Vcm, ecm: Optional[Ecm]):
     try:
         yield _vcm, _ecm
     finally:
-        if isinstance(vcm, str) and vcm == '_vcm':
+        if is_str_pmap(vcm, '_vcm'):
             mesh.vertex_data.remove_property('_vcm')
-        if isinstance(ecm, str) and ecm == '_ecm':
+        if is_str_pmap(ecm, '_ecm'):
             mesh.edge_data.remove_property('_ecm')
