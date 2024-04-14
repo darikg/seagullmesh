@@ -25,5 +25,8 @@ void init_simplification(py::module &m) {
 
     sub
         .def("edge_collapse", [](Mesh3& mesh, EC stop) {SMS::edge_collapse(mesh, stop);})
+        .def("edge_collapse", [](Mesh3& mesh, FC stop) {SMS::edge_collapse(mesh, stop);})
+        .def("edge_collapse", [](Mesh3& mesh, ECR stop) {SMS::edge_collapse(mesh, stop);})
+        .def("edge_collapse", [](Mesh3& mesh, FCR stop) {SMS::edge_collapse(mesh, stop);})
     ;
 }

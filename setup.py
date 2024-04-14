@@ -126,6 +126,7 @@ ext_modules = [
             'src/parametrize.cpp',
             'src/triangulate.cpp',
             'src/border.cpp',
+            'src/simplification.cpp',
         ],
         include_dirs=include_dirs,
         library_dirs=library_dirs,
