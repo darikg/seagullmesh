@@ -114,6 +114,9 @@ From [Planar Parameterization of Triangulated Surface Meshes](https://doc.cgal.o
   - `mesh.lscm(uv_map)`
   - `mesh.arap(uv_map)`
 
+From [Triangulated Surface Mesh Simplification](https://doc.cgal.org/latest/Surface_mesh_simplification/index.html)
+  - `mesh.edge_collapse()`
+
 ## Acknowledgements
 
 The basis of the pybind11-cgal infrastructure is inspired very heavily by [Scikit-geometry](https://github.com/scikit-geometry/scikit-geometry).

@@ -351,6 +351,10 @@ class Mesh3:
 
         return Mesh3(out)
 
+    def edge_collapse(self, edge_constrained: Ecm = '_ecm'):
+        ecm = self.edge_data.get_or_create_property(edge_constrained, default=False)
+
+
 def _get_corefined_properties(
         mesh1: Mesh3,
         mesh2: Mesh3,

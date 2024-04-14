@@ -15,6 +15,15 @@ typedef SMS::Face_count_stop_predicate<Mesh3>           FC;
 typedef SMS::Edge_count_ratio_stop_predicate<Mesh3>     ECR;
 typedef SMS::Face_count_stop_predicate<Mesh3>           FCR;
 
+typedef Mesh3::Property_map<E, bool>                    EdgeBool;
+
+
+template <typename T>
+auto do_edge_collapse(Mesh3& mesh, const T& stop_policy, EdgeBool& edge_is_constrained) {
+    auto np = CGAL::parameters::edge_is_constrained_map(edge_is_constrained);
+    return SMS::edge_collapse(mesh, stop_policy, np);
+}
+
 
 void init_simplification(py::module &m) {
     py::module sub = m.def_submodule("simplification");
@@ -24,9 +33,17 @@ void init_simplification(py::module &m) {
     py::class_<FCR>(sub, "FaceCountRatio").def(py::init<const double>());
 
     sub
-        .def("edge_collapse", [](Mesh3& mesh, EC stop) {SMS::edge_collapse(mesh, stop);})
-        .def("edge_collapse", [](Mesh3& mesh, FC stop) {SMS::edge_collapse(mesh, stop);})
-        .def("edge_collapse", [](Mesh3& mesh, ECR stop) {SMS::edge_collapse(mesh, stop);})
-        .def("edge_collapse", [](Mesh3& mesh, FCR stop) {SMS::edge_collapse(mesh, stop);})
+        .def("edge_collapse", [](Mesh3& mesh, const EC& stop_policy, EdgeBool& edge_is_constrained) {
+            return do_edge_collapse(mesh, stop_policy, edge_is_constrained);
+        })
+        .def("edge_collapse", [](Mesh3& mesh, const FC& stop_policy, EdgeBool& edge_is_constrained) {
+            return do_edge_collapse(mesh, stop_policy, edge_is_constrained);
+        })
+        .def("edge_collapse", [](Mesh3& mesh, const ECR& stop_policy, EdgeBool& edge_is_constrained) {
+            return do_edge_collapse(mesh, stop_policy, edge_is_constrained);
+        })
+        .def("edge_collapse", [](Mesh3& mesh, const FCR& stop_policy, EdgeBool& edge_is_constrained) {
+            return do_edge_collapse(mesh, stop_policy, edge_is_constrained);
+        })
     ;
 }
