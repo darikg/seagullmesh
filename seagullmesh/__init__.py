@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Optional, TYPE_CHECKING, Union, Sequence, Protocol, TypeVar, overload, Tuple, Generic, List, \
-    Iterator, Type, Dict
+    Iterator, Type, Dict, Literal
 
 from numpy import ndarray, zeros_like, array, sqrt, concatenate, ones, full
 from seagullmesh._seagullmesh.mesh import (  # noqa
@@ -351,9 +351,45 @@ class Mesh3:
 
         return Mesh3(out)
 
-    def edge_collapse(self, edge_constrained: Ecm = '_ecm'):
-        ecm = self.edge_data.get_or_create_property(edge_constrained, default=False)
+    def edge_collapse(
+            self,
+            stop_policy_mode: Literal["face", "edge"],
+            stop_policy_thresh: float | int,
+            edge_constrained: Ecm = '_ecm',
+    ) -> int:
+        """Mesh simplification by edge collapse
 
+        See https://doc.cgal.org/latest/Surface_mesh_simplification/index.html for details.
+
+        stop_policy mode is 'face' or 'edge', and 'stop_policy_thresh' is either an int or float.
+        If an int, stops after the number of edges/faces drops below that threshold. If a float, the
+        threshold indicates a ration in [0, 1], stopping when the number of edges/faces is below
+        that ratio of the original number.
+
+        Constrained edges can be indicated in a boolean Face property map.
+        """
+        if stop_policy_mode == 'face':
+            if isinstance(stop_policy_thresh, float):
+                stop_policy = sgm.simplification.FaceCountRatio(stop_policy_thresh)
+            elif isinstance(stop_policy_thresh, int):
+                stop_policy = sgm.simplification.FaceCount(stop_policy_thresh)
+            else:
+                raise ValueError(f"Unsupported threshold type {type(stop_policy_thresh)}")
+        elif stop_policy_mode == 'edge':
+            if isinstance(stop_policy_thresh, float):
+                stop_policy = sgm.simplification.EdgeCountRatio(stop_policy_thresh)
+            elif isinstance(stop_policy_thresh, int):
+                stop_policy = sgm.simplification.EdgeCount(stop_policy_thresh)
+            else:
+                raise ValueError(f"Unsupported threshold type {type(stop_policy_thresh)}")
+        else:
+            raise ValueError(f"Unsupported stop policy mode {stop_policy_mode}")
+
+        ecm = self.edge_data.get_or_create_property(edge_constrained, default=False)
+        out = sgm.simplification.edge_collapse(self._mesh, stop_policy, ecm)
+        if is_str_pmap(edge_constrained, '_ecm'):
+            self.edge_data.remove_property('_ecm')
+        return out
 
 def _get_corefined_properties(
         mesh1: Mesh3,
