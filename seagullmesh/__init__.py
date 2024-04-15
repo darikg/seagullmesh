@@ -342,7 +342,8 @@ class Mesh3:
     ) -> Mesh3:
         ecm = self.edge_data.get_or_create_property(edge_constrained, default=False)
         fpm = self.face_data.get_or_create_property(face_patch_map, default=-1)
-        out = sgm.meshing.remesh_planar_patches(self._mesh, ecm, fpm, cosine_of_maximum_angle)
+        out = sgm.meshing.remesh_planar_patches(
+            self._mesh, ecm.pmap, fpm.pmap, cosine_of_maximum_angle)
 
         if is_str_pmap(edge_constrained, '_ecm'):
             self.edge_data.remove_property('_ecm')
@@ -370,23 +371,23 @@ class Mesh3:
         """
         if stop_policy_mode == 'face':
             if isinstance(stop_policy_thresh, float):
-                stop_policy = sgm.simplification.FaceCountRatio(stop_policy_thresh)
+                fn = sgm.simplification.edge_collapse_face_count_ratio
             elif isinstance(stop_policy_thresh, int):
-                stop_policy = sgm.simplification.FaceCount(stop_policy_thresh)
+                fn = sgm.simplification.edge_collapse_face_count
             else:
                 raise ValueError(f"Unsupported threshold type {type(stop_policy_thresh)}")
         elif stop_policy_mode == 'edge':
             if isinstance(stop_policy_thresh, float):
-                stop_policy = sgm.simplification.EdgeCountRatio(stop_policy_thresh)
+                fn = sgm.simplification.edge_collapse_edge_count_ratio
             elif isinstance(stop_policy_thresh, int):
-                stop_policy = sgm.simplification.EdgeCount(stop_policy_thresh)
+                fn = sgm.simplification.edge_collapse_edge_count
             else:
                 raise ValueError(f"Unsupported threshold type {type(stop_policy_thresh)}")
         else:
             raise ValueError(f"Unsupported stop policy mode {stop_policy_mode}")
 
         ecm = self.edge_data.get_or_create_property(edge_constrained, default=False)
-        out = sgm.simplification.edge_collapse(self._mesh, stop_policy, ecm)
+        out = fn(self._mesh, stop_policy_thresh, ecm.pmap)
         if is_str_pmap(edge_constrained, '_ecm'):
             self.edge_data.remove_property('_ecm')
         return out
