@@ -337,18 +337,19 @@ class Mesh3:
     def remesh_planar_patches(
             self,
             edge_constrained: Ecm = '_ecm',
-            face_patch_map: FaceMap = '_face_map',
+            # face_patch_map: FaceMap = '_face_map',
             cosine_of_maximum_angle: float = 1.0,
     ) -> Mesh3:
         ecm = self.edge_data.get_or_create_property(edge_constrained, default=False)
-        fpm = self.face_data.get_or_create_property(face_patch_map, default=-1)
+        # fpm = self.face_data.get_or_create_property(face_patch_map, default=-1)
+        # TODO see comments in c++ remesh_planar_patches regarding face_patch_map
         out = sgm.meshing.remesh_planar_patches(
-            self._mesh, ecm.pmap, fpm.pmap, cosine_of_maximum_angle)
+            self._mesh, ecm.pmap, cosine_of_maximum_angle)
 
         if is_str_pmap(edge_constrained, '_ecm'):
             self.edge_data.remove_property('_ecm')
-        if is_str_pmap(face_patch_map, '_face_map'):
-            self.face_data.remove_property('_face_map')
+        # if is_str_pmap(face_patch_map, '_face_map'):
+        #     self.face_data.remove_property('_face_map')
 
         return Mesh3(out)
 

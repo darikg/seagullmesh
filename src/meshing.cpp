@@ -153,12 +153,15 @@ void init_meshing(py::module &m) {
         .def("remesh_planar_patches", [](
                 const Mesh3& mesh,
                 EdgeBool& edge_is_constrained_map,
-                FaceMap& face_patch_map,
+                // FaceMap& face_patch_map,
                 float cosine_of_maximum_angle
             ) {
+            // TODO parameters.face_patch_map wants propertymap<F, std::size_t>
+            // But we've only exposed pmap<F, int>
+            // Will doing both signed and unsigned ints be too complicated?
             auto params = PMP::parameters::
                 edge_is_constrained_map(edge_is_constrained_map)
-                .face_patch_map(face_patch_map)
+                // .face_patch_map(face_patch_map)
                 .cosine_of_maximum_angle(cosine_of_maximum_angle)
             ;
 
