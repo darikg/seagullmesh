@@ -130,11 +130,13 @@ void define_array_2_property_map(py::module &m, std::string name) {
 void init_properties(py::module &m) {
     py::module sub = m.def_submodule("properties");
 
-    define_property_map<V, bool    >(sub, "VertBoolPropertyMap");
-    define_property_map<V, int     >(sub, "VertIntPropertyMap");
-    define_property_map<V, double  >(sub, "VertDoublePropertyMap");
-    define_property_map<F, bool    >(sub, "FaceBoolPropertyMap");
-    define_property_map<F, int     >(sub, "FaceIntPropertyMap");
+    define_property_map<V, bool         >(sub, "VertBoolPropertyMap");
+    define_property_map<V, int          >(sub, "VertIntPropertyMap");
+    define_property_map<V, double       >(sub, "VertDoublePropertyMap");
+    define_property_map<F, bool         >(sub, "FaceBoolPropertyMap");
+    define_property_map<F, int          >(sub, "FaceIntPropertyMap");
+    define_property_map<F, std::size_t  >(sub, "FaceUIntPropertyMap");
+
     define_property_map<F, double  >(sub, "FaceDoublePropertyMap");
     define_property_map<E, bool    >(sub, "EdgeBoolPropertyMap");
     define_property_map<E, int     >(sub, "EdgeIntPropertyMap");
@@ -173,6 +175,7 @@ void init_properties(py::module &m) {
      .def("add_vertex_property",   &add_property_map<V, Vector2>)
 
      .def("add_face_property",     &add_property_map<F, bool>)
+     .def("add_face_property",     &add_property_map<F, std::size_t>, py::arg(), py::arg(), py::arg().noconvert())
      .def("add_face_property",     &add_property_map<F, int>)
      .def("add_face_property",     &add_property_map<F, double>)
      .def("add_face_property",     &add_property_map<F, Point3>)
