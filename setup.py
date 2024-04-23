@@ -127,6 +127,7 @@ ext_modules = [
             'src/triangulate.cpp',
             'src/border.cpp',
             'src/simplification.cpp',
+            'src/skeletonization.cpp',
         ],
         include_dirs=include_dirs,
         library_dirs=library_dirs,

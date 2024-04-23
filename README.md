@@ -15,7 +15,7 @@ conda activate seagull
 On linux, you'll also need
 
 ```shell
-conda install -c conda-forge gxx_linux-64 libgcc
+conda install -c conda-forge gxx_linux-64 libgcc libxcrypt
 ```
 
 Finally, 
@@ -116,6 +116,9 @@ From [Planar Parameterization of Triangulated Surface Meshes](https://doc.cgal.o
 
 From [Triangulated Surface Mesh Simplification](https://doc.cgal.org/latest/Surface_mesh_simplification/index.html)
   - `mesh.edge_collapse()`
+
+From [Triangulated Surface Mesh Skeletonization](https://doc.cgal.org/latest/Surface_mesh_skeletonization/index.html)
+  - `mesh.skeletonize()`
 
 ## Acknowledgements
 

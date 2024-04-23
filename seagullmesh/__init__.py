@@ -56,6 +56,12 @@ class Mesh3:
 
     is_valid = property(lambda self: self._mesh.is_valid)
 
+    @staticmethod
+    def tetrahedron():
+        verts = array([[1, 1, 1], [-1, 1, -1], [1, -1, -1], [-1, -1, 1]], dtype='float')
+        faces = array([[2, 1, 0], [2, 3, 1], [3, 2, 0], [1, 3, 0]], dtype='int')
+        return Mesh3.from_polygon_soup(verts, faces)
+
     def edge_vertices(self, edges: Edges) -> A:
         """Returns a len(edges) * 2 array of integer vertex indices"""
         return self._mesh.edge_vertices(edges)
@@ -392,6 +398,20 @@ class Mesh3:
         if is_str_pmap(edge_constrained, '_ecm'):
             self.edge_data.remove_property('_ecm')
         return out
+
+    def skeletonize(self):
+        """Construct the medial axis skeleton
+
+        From [Triangulated Surface Mesh Skeletonization](
+            https://doc.cgal.org/latest/Surface_mesh_skeletonization/index.html).
+
+        Returns a `Skeleton` object with properties
+          points : (n, 3) array of medial axis vertex positions
+          edges : (m, 2) array of vertex indices
+          vertex_map : dict[int, list[mesh vertex]] mapping skeleton vertices to mesh vertices
+        """
+        return sgm.skeletonization.extract_mean_curvature_flow_skeleton(self._mesh)
+
 
 def _get_corefined_properties(
         mesh1: Mesh3,
