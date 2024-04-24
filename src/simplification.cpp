@@ -4,15 +4,16 @@
 #include <CGAL/Surface_mesh_simplification/Policies/Edge_collapse/Face_count_stop_predicate.h>
 #include <CGAL/Surface_mesh_simplification/Policies/Edge_collapse/Edge_count_ratio_stop_predicate.h>
 #include <CGAL/Surface_mesh_simplification/Policies/Edge_collapse/Face_count_ratio_stop_predicate.h>
-// #include <CGAL/Surface_mesh_simplification/Policies/Edge_collapse/Edge_length_stop_predicate.h>
+#include <CGAL/Surface_mesh_simplification/Policies/Edge_collapse/Edge_length_stop_predicate.h>
 
 namespace SMS = CGAL::Surface_mesh_simplification;
 
 
-typedef SMS::Edge_count_stop_predicate<Mesh3>           EC;
-typedef SMS::Face_count_stop_predicate<Mesh3>           FC;
-typedef SMS::Edge_count_ratio_stop_predicate<Mesh3>     ECR;
-typedef SMS::Face_count_stop_predicate<Mesh3>           FCR;
+typedef SMS::Edge_count_stop_predicate<Mesh3>           EdgeCount;
+typedef SMS::Face_count_stop_predicate<Mesh3>           FaceCount;
+typedef SMS::Edge_count_ratio_stop_predicate<Mesh3>     EdgeCountRatio;
+typedef SMS::Face_count_ratio_stop_predicate<Mesh3>     FaceCountRatio;
+typedef SMS::Edge_length_stop_predicate<Kernel::FT>     EdgeLength;
 
 typedef Mesh3::Property_map<E, bool>                    EdgeBool;
 
@@ -28,16 +29,19 @@ void init_simplification(py::module &m) {
     py::module sub = m.def_submodule("simplification");
     sub
         .def("edge_collapse_edge_count", [](Mesh3& mesh, const Mesh3::size_type n, EdgeBool& edge_is_constrained) {
-            return do_edge_collapse(mesh, EC(n), edge_is_constrained);
+            return do_edge_collapse(mesh, EdgeCount(n), edge_is_constrained);
         })
         .def("edge_collapse_face_count", [](Mesh3& mesh, const Mesh3::size_type n, EdgeBool& edge_is_constrained) {
-            return do_edge_collapse(mesh, FC(n), edge_is_constrained);
+            return do_edge_collapse(mesh, FaceCount(n), edge_is_constrained);
         })
         .def("edge_collapse_edge_count_ratio", [](Mesh3& mesh, const double ratio, EdgeBool& edge_is_constrained) {
-            return do_edge_collapse(mesh, ECR(ratio), edge_is_constrained);
+            return do_edge_collapse(mesh, EdgeCountRatio(ratio), edge_is_constrained);
         })
         .def("edge_collapse_face_count_ratio", [](Mesh3& mesh, const double ratio, EdgeBool& edge_is_constrained) {
-            return do_edge_collapse(mesh, FCR(ratio), edge_is_constrained);
+            return do_edge_collapse(mesh, FaceCountRatio(ratio, mesh), edge_is_constrained);
+        })
+        .def("edge_collapse_edge_length", [](Mesh3& mesh, const double thresh, EdgeBool& edge_is_constrained) {
+            return do_edge_collapse(mesh, EdgeLength(thresh), edge_is_constrained);
         })
     ;
 }

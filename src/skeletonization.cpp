@@ -35,7 +35,7 @@ void init_skeletonization(py::module &m) {
         })
         .def_property_readonly("points", [](const Skeleton& skeleton) {
             const auto nv = boost::num_vertices(skeleton);
-            py::array_t<size_t, py::array::c_style> points({nv, size_t(3)});
+            py::array_t<double, py::array::c_style> points({nv, size_t(3)});
             auto r = points.mutable_unchecked<2>();
             size_t vi = 0;
             for (SkelVertex v : CGAL::make_range(vertices(skeleton))) {

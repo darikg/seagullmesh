@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
+from functools import cached_property
 from pathlib import Path
 from typing import Any, Optional, TYPE_CHECKING, Union, Sequence, Protocol, TypeVar, overload, Tuple, Generic, List, \
     Iterator, Type, Dict, Literal
@@ -361,7 +362,7 @@ class Mesh3:
 
     def edge_collapse(
             self,
-            stop_policy_mode: Literal["face", "edge"],
+            stop_policy_mode: Literal["face", "edge", "edge_length"],
             stop_policy_thresh: float | int,
             edge_constrained: Ecm = '_ecm',
     ) -> int:
@@ -369,12 +370,15 @@ class Mesh3:
 
         See https://doc.cgal.org/latest/Surface_mesh_simplification/index.html for details.
 
-        stop_policy mode is 'face' or 'edge', and 'stop_policy_thresh' is either an int or float.
+        If `stop_policy_mode` is 'face' or 'edge', 'stop_policy_thresh' is either an int or float.
         If an int, stops after the number of edges/faces drops below that threshold. If a float, the
         threshold indicates a ration in [0, 1], stopping when the number of edges/faces is below
         that ratio of the original number.
 
-        Constrained edges can be indicated in a boolean Face property map.
+        If `stop_policy_mode` is 'edge_length', stop_policy_thresh must be a thresh, indicating
+        the minimum edge length.
+
+        Constrained edges can be indicated in a boolean edge property map `edge_constrained`.
         """
         if stop_policy_mode == 'face':
             if isinstance(stop_policy_thresh, float):
@@ -390,6 +394,8 @@ class Mesh3:
                 fn = sgm.simplification.edge_collapse_edge_count
             else:
                 raise ValueError(f"Unsupported threshold type {type(stop_policy_thresh)}")
+        elif stop_policy_mode == 'edge_length':
+            fn = sgm.simplification.edge_collapse_edge_length
         else:
             raise ValueError(f"Unsupported stop policy mode {stop_policy_mode}")
 
@@ -410,7 +416,30 @@ class Mesh3:
           edges : (m, 2) array of vertex indices
           vertex_map : dict[int, list[mesh vertex]] mapping skeleton vertices to mesh vertices
         """
-        return sgm.skeletonization.extract_mean_curvature_flow_skeleton(self._mesh)
+        skeleton = sgm.skeletonization.extract_mean_curvature_flow_skeleton(self._mesh)
+        return Skeleton(mesh=self, skeleton=skeleton)
+
+
+class Skeleton:
+    """Wrapper around the C++ sgm.skeletonization.Skeleton class
+
+    (Which is itself a boost adjacency_list)
+    """
+    def __init__(self, mesh: Mesh3, skeleton):
+        self._mesh = mesh
+        self._skeleton = skeleton
+
+    @cached_property
+    def points(self) -> ndarray:
+        return self._skeleton.points
+
+    @cached_property
+    def edges(self) -> ndarray:
+        return self._skeleton.edges
+
+    @cached_property
+    def vertex_map(self) -> Dict[int, List[Vertex]]:
+        return self._skeleton.vertex_map
 
 
 def _get_corefined_properties(
