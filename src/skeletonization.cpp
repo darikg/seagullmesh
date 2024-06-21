@@ -1,6 +1,7 @@
 #include "seagullmesh.hpp"
 #include "util.hpp"
 
+#include <limits>
 #include <boost/graph/adjacency_list.hpp>
 
 #include <CGAL/Surface_mesh.h>
@@ -56,22 +57,28 @@ void init_skeletonization(py::module &m) {
         })
         .def("compute_radii", [](const Skeleton& skeleton, const Mesh3& mesh) {
             const auto nv = boost::num_vertices(skeleton);
-            py::array_t<double, py::array::c_style> radii(nv);
-            auto r = radii.mutable_unchecked<1>();
+            py::array_t<double, py::array::c_style> radii({nv, size_t(2)});
+            auto r = radii.mutable_unchecked<2>();
             size_t vi = 0;
 
             for (SkelVertex skel_v : CGAL::make_range(vertices(skeleton))) {
-                double radius2 = 0.0;
+                double r2_min = std::numeric_limits<double>::max();
+                double r2_max = 0.0;
                 const Point3& skel_pt = skeleton[skel_v].point;
+                int n_neighbors = 0;
 
                 for (V mesh_v : skeleton[skel_v].vertices) {
                     const Point3& mesh_pt = mesh.point(mesh_v);
                     double d2 = CGAL::squared_distance(skel_pt, mesh_pt);
-                    if (d2 > radius2) {
-                        radius2 = d2;
-                    }
+                    r2_min = std::min(r2_min, d2);
+                    r2_max = std::max(r2_max, d2);
+                    n_neighbors++;
                 }
-                r(vi) = std::sqrt(radius2);
+                if (n_neighbors == 0) {
+                    r2_min = 0;
+                }
+                r(vi, 0) = std::sqrt(r2_min);
+                r(vi, 1) = std::sqrt(r2_max);
                 vi++;
             }
             return radii;
