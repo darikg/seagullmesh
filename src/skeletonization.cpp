@@ -54,6 +54,28 @@ void init_skeletonization(py::module &m) {
             }
             return vert_map;
         })
+        .def("compute_radii", [](const Skeleton& skeleton, const Mesh3& mesh) {
+            const auto nv = boost::num_vertices(skeleton);
+            py::array_t<double, py::array::c_style> radii(nv);
+            auto r = radii.mutable_unchecked<1>();
+            size_t vi = 0;
+
+            for (SkelVertex skel_v : CGAL::make_range(vertices(skeleton))) {
+                double radius2 = 0.0;
+                const Point3& skel_pt = skeleton[skel_v].point;
+
+                for (V mesh_v : skeleton[skel_v].vertices) {
+                    const Point3& mesh_pt = mesh.point(mesh_v);
+                    double d2 = CGAL::squared_distance(skel_pt, mesh_pt);
+                    if (d2 > radius2) {
+                        radius2 = d2;
+                    }
+                }
+                r(vi) = std::sqrt(radius2);
+                vi++;
+            }
+            return radii;
+        })
     ;
 
     sub.def("extract_mean_curvature_flow_skeleton", [](const Mesh3& mesh) {

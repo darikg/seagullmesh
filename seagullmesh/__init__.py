@@ -438,6 +438,10 @@ class Skeleton:
     def vertex_map(self) -> Dict[int, List[Vertex]]:
         return self._skeleton.vertex_map
 
+    @cached_property
+    def radii(self) -> ndarray:
+        return self._skeleton.compute_radii(self._mesh.mesh)
+
 
 def _get_corefined_properties(
         mesh1: Mesh3,
