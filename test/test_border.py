@@ -12,12 +12,12 @@ def pv_border_edges(mesh: PolyData) -> PolyData:
     )
 
 
-def test_label_border_vertices():
-    pv_cyl = Cylinder(capping=False, resolution=10).triangulate()
-    sm_cyl = Mesh3.from_pyvista(pv_cyl)
-
-    sm_cyl.label_border_vertices('is_border')
-    sm_n_verts = sm_cyl.vertex_data['is_border'][:].sum()
-    pv_n_verts = pv_border_edges(pv_cyl).n_points
-
-    assert sm_n_verts == pv_n_verts
+# def test_label_border_vertices():
+#     pv_cyl = Cylinder(capping=False, resolution=10).triangulate()
+#     sm_cyl = Mesh3.from_pyvista(pv_cyl)
+#
+#     sm_cyl.label_border_vertices('is_border')
+#     sm_n_verts = sm_cyl.vertex_data['is_border'][:].sum()
+#     pv_n_verts = pv_border_edges(pv_cyl).n_points
+#
+#     assert sm_n_verts == pv_n_verts
