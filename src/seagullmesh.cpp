@@ -1,5 +1,9 @@
+#define PYBIND11_DETAILED_ERROR_MESSAGES
+
 #include <pybind11/pybind11.h>
 namespace py = pybind11;
+
+
 
 void init_mesh(py::module&);
 void init_properties(py::module&);

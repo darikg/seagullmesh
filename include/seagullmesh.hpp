@@ -1,4 +1,5 @@
 #pragma once
+#define PYBIND11_DETAILED_ERROR_MESSAGES
 #include <iostream>
 #include <pybind11/pybind11.h>
 #include <pybind11/pytypes.h>
