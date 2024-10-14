@@ -195,12 +195,12 @@ void init_properties(py::module &m) {
      .def("add_edge_property",     &add_property_map<E, Point2>)
      .def("add_edge_property",     &add_property_map<E, Vector2>)
 
-     .def("add_halfedge_property", &add_property_map<H, bool>)
-     .def("add_halfedge_property", &add_property_map<H, int>)
-     .def("add_halfedge_property", &add_property_map<H, double>)
-     .def("add_halfedge_property", &add_property_map<H, Point3>)
-     .def("add_halfedge_property", &add_property_map<H, Vector3>)
-     .def("add_halfedge_property", &add_property_map<H, Point2>)
-     .def("add_halfedge_property", &add_property_map<H, Vector2>)
+//     .def("add_halfedge_property", &add_property_map<H, bool>)
+//     .def("add_halfedge_property", &add_property_map<H, int>)
+//     .def("add_halfedge_property", &add_property_map<H, double>)
+//     .def("add_halfedge_property", &add_property_map<H, Point3>)
+//     .def("add_halfedge_property", &add_property_map<H, Vector3>)
+//     .def("add_halfedge_property", &add_property_map<H, Point2>)
+//     .def("add_halfedge_property", &add_property_map<H, Vector2>)
     ;
 }

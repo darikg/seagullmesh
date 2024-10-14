@@ -41,15 +41,16 @@ class Mesh3:
         self.vertex_data.assign_property_map('points', ArrayPropertyMap, mesh.points)
         self.face_data = MeshData(mesh, sgm.properties.add_face_property, 'faces')
         self.edge_data = MeshData(mesh, sgm.properties.add_edge_property, 'edges')
-        self.halfedge_data = MeshData(mesh, sgm.properties.add_halfedge_property, 'halfedges')
+        # self.halfedge_data = MeshData(mesh, sgm.properties.add_halfedge_property, 'halfedges')
 
     mesh = property(lambda self: self._mesh)
 
     vertices = property(lambda self: array(self._mesh.vertices))
     faces = property(lambda self: array(self._mesh.faces))
     edges = property(lambda self: array(self._mesh.edges))
-    halfedges = property(lambda self: array(self._mesh.halfedges))
+    # halfedges = property(lambda self: array(self._mesh.halfedges))
 
+    # todo: no point to return arrays here, assume it's just a copy/paste mistake
     n_vertices = property(lambda self: array(self._mesh.n_vertices))
     n_faces = property(lambda self: array(self._mesh.n_faces))
     n_edges = property(lambda self: array(self._mesh.n_edges))
