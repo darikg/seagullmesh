@@ -9,7 +9,7 @@
 namespace SMP = CGAL::Surface_mesh_parameterization;
 namespace PMP = CGAL::Polygon_mesh_processing;
 
-typedef Mesh3::Property_map<V, Point2>                         UVMap;
+typedef Mesh3::Property_map<V, Point2>                          UVMap;
 typedef SMP::Two_vertices_parameterizer_3<Mesh3>                BorderParameterizer;
 typedef SMP::LSCM_parameterizer_3<Mesh3, BorderParameterizer>   LscmParameterizer;
 typedef SMP::ARAP_parameterizer_3<Mesh3, BorderParameterizer>   ArapParameterizer;
