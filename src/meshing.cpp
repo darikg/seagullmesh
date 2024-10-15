@@ -200,16 +200,16 @@ void init_meshing(py::module &m) {
                 const double tol,
                 const std::pair<double, double>& edge_len_min_max,
                 const Faces& faces,
-                Mesh3& mesh,
+                Mesh3& mesh
             ) {
                 return AdaptiveSizingField(tol, edge_len_min_max, faces, mesh);
             })
 //            ,
-//            "An adaptive sizing field for curvature-based remeshing"
+//            // "An adaptive sizing field for curvature-based remeshing",
 //            py::arg("tol"),
 //            py::arg("edge_len_min_max"),
 //            py::arg("faces"),
-//            py::arg("mesh"),
+//            py::arg("mesh")
         )
 //        .def(
 //            py::init([](
