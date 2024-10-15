@@ -1,5 +1,8 @@
 #include "seagullmesh.hpp"
 
+#include <CGAL/Polygon_mesh_processing/interpolated_corrected_curvatures.h>
+typedef CGAL::Polygon_mesh_processing::Principal_curvatures_and_directions<Kernel>    PrincipalCurvDir;
+
 template <typename Key, typename Val>
 auto add_property_map(Mesh3& mesh, std::string name, const Val default_val) {
     typename Mesh3::Property_map<Key, Val> pmap;
@@ -130,10 +133,21 @@ void define_array_2_property_map(py::module &m, std::string name) {
 void init_properties(py::module &m) {
     py::module sub = m.def_submodule("properties");
 
-    define_property_map<V, bool    >(sub, "VertBoolPropertyMap");
-    define_property_map<V, int     >(sub, "VertIntPropertyMap");
-    define_property_map<V, size_t  >(sub, "VertUIntPropertyMap");
-    define_property_map<V, double  >(sub, "VertDoublePropertyMap");
+    // Kinda awkward defining the class here but also wanting to use it in the meshing module
+    py::class_<PrincipalCurvDir>(sub, "PrincipalCurvaturesAndDirections")
+        .def(py::init<double, double, Vector3, Vector3>())
+        .def(py::init<>())  // default (0, 0, Vec3(0, 0, 0), Vec3(0, 0, 0))
+        .def_property_readonly("min_curvature", [](const PrincipalCurvDir& p) {return p.min_curvature;})
+        .def_property_readonly("max_curvature", [](const PrincipalCurvDir& p) {return p.max_curvature;})
+        .def_property_readonly("min_direction", [](const PrincipalCurvDir& p) {return p.min_direction;})
+        .def_property_readonly("max_direction", [](const PrincipalCurvDir& p) {return p.max_direction;})
+    ;
+
+    define_property_map<V, bool             >(sub, "VertBoolPropertyMap");
+    define_property_map<V, int              >(sub, "VertIntPropertyMap");
+    define_property_map<V, size_t           >(sub, "VertUIntPropertyMap");
+    define_property_map<V, double           >(sub, "VertDoublePropertyMap");
+    define_property_map<V, PrincipalCurvDir >(sub, "VertPrincipalCurvDirMap");
 
     define_property_map<F, bool    >(sub, "FaceBoolPropertyMap");
     define_property_map<F, int     >(sub, "FaceIntPropertyMap");
