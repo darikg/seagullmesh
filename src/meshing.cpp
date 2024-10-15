@@ -203,30 +203,27 @@ void init_meshing(py::module &m) {
                 Mesh3& mesh
             ) {
                 return AdaptiveSizingField(tol, edge_len_min_max, faces, mesh);
-            })
-//            ,
-//            // "An adaptive sizing field for curvature-based remeshing",
-//            py::arg("tol"),
-//            py::arg("edge_len_min_max"),
-//            py::arg("faces"),
-//            py::arg("mesh")
+            }),
+            py::arg("tol"),
+            py::arg("edge_len_min_max"),
+            py::arg("faces"),
+            py::arg("mesh")
         )
-//        .def(
-//            py::init([](
-//                const double tol,
-//                const std::pair<double, double>& edge_len_min_max,
-//                const Faces& faces,
-//                Mesh3& mesh,
-//                double ball_radius
-//            ) {
-//                return AdaptiveSizingField(tol, edge_len_min_max, faces, mesh, PMP::parameters::ball_radius(ball_radius));
-//            }),
-//            "An adaptive sizing field for curvature-based remeshing"
-//            py::arg("tol"),
-//            py::arg("edge_len_min_max"),
-//            py::arg("faces"),
-//            py::arg("mesh"),
-//            py::arg("ball_radius"),
-//        )
+        .def(
+            py::init([](
+                const double tol,
+                const std::pair<double, double>& edge_len_min_max,
+                const Faces& faces,
+                Mesh3& mesh,
+                double ball_radius
+            ) {
+                return AdaptiveSizingField(tol, edge_len_min_max, faces, mesh, PMP::parameters::ball_radius(ball_radius));
+            }),
+            py::arg("tol"),
+            py::arg("edge_len_min_max"),
+            py::arg("faces"),
+            py::arg("mesh"),
+            py::arg("ball_radius")
+        )
     ;
 }
