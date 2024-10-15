@@ -15,6 +15,7 @@ from seagullmesh._seagullmesh.mesh import (  # noqa
     Point2, Point3, Vector2, Vector3,
     Vertex, Face, Edge, Halfedge,
 )
+from seagullmesh._seagullmesh.properties import PrincipalCurvaturesAndDirections
 
 from seagullmesh import _seagullmesh as sgm
 from ._version import version_info, __version__  # noqa
@@ -24,6 +25,7 @@ Faces = Sequence[Face]
 Edges = Sequence[Edge]
 Halfedges = Sequence[Halfedge]
 
+_PrincCurvMap = PropertyMap[Vertex, PrincipalCurvaturesAndDirections]
 
 if TYPE_CHECKING:
     try:
@@ -416,6 +418,20 @@ class Mesh3:
         """
         skeleton = sgm.skeletonization.extract_mean_curvature_flow_skeleton(self._mesh)
         return Skeleton(mesh=self, skeleton=skeleton)
+
+    def interpolated_corrected_curvatures(
+            self,
+            ball_radius: float = -1,
+            mean_curvature_map: str | PropertyMap[Vertex, float] = 'mean_curvature',
+            gaussian_curvature_map: str | PropertyMap[Vertex, float] = 'gaussian_curvature',
+            principal_curvature_map: str | _PrincCurvMap = 'principal_curvatures',
+    ):
+        mcm = self.vertex_data.get_or_create_property(mean_curvature_map, 0)
+        gcm = self.vertex_data.get_or_create_property(gaussian_curvature_map, 0)
+        pcm = self.vertex_data.get_or_create_property(
+            principal_curvature_map, sgm.properties.PrincipalCurvaturesAndDirections())
+
+        sgm.meshing.interpolated_corrected_curvatures(self._mesh, ball_radius, mcm, gcm, pcm)
 
 
 class Skeleton:

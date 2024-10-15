@@ -8,15 +8,20 @@
 #include <CGAL/Polygon_mesh_processing/self_intersections.h>
 #include <CGAL/Polygon_mesh_processing/tangential_relaxation.h>
 #include <CGAL/Polygon_mesh_processing/remesh_planar_patches.h>
+#include <CGAL/Polygon_mesh_processing/interpolated_corrected_curvatures.h>
 
 namespace PMP = CGAL::Polygon_mesh_processing;
 
-typedef std::vector<V>                     Verts;
-typedef std::vector<F>                     Faces;
-typedef Mesh3::Property_map<V, Point3>     VertPoint;
-typedef Mesh3::Property_map<V, bool>       VertBool;
-typedef Mesh3::Property_map<E, bool>       EdgeBool;
-typedef Mesh3::Property_map<F, F>          FaceMap;
+typedef PMP::Principal_curvatures_and_directions<Kernel>    PrincipalCurvDir;
+
+typedef std::vector<V>                                      Verts;
+typedef std::vector<F>                                      Faces;
+typedef Mesh3::Property_map<V, Point3>                      VertPoint;
+typedef Mesh3::Property_map<V, double>                      VertDouble;
+typedef Mesh3::Property_map<V, bool>                        VertBool;
+typedef Mesh3::Property_map<V, PrincipalCurvDir>            VertPrincipalCurvDir;
+typedef Mesh3::Property_map<E, bool>                        EdgeBool;
+typedef Mesh3::Property_map<F, F>                           FaceMap;
 
 
 struct VertexPointMapWrapper {
@@ -168,6 +173,21 @@ void init_meshing(py::module &m) {
             Mesh3 out;
             PMP::remesh_planar_patches(mesh, out, params);
             return out;
+        })
+        .def("interpolated_corrected_curvatures", [](
+            const Mesh3& mesh,
+            const double ball_radius,
+            VertDouble& mean_curv_map,
+            VertDouble& gauss_curv_map,
+            VertPrincipalCurvDir& princ_curv_dir_map
+        ) {
+            auto params = PMP::parameters::
+                vertex_mean_curvature_map(mean_curv_map)
+                .vertex_Gaussian_curvature_map(mean_curv_map)
+                .vertex_principal_curvatures_and_directions_map(princ_curv_dir_map)
+                .ball_radius(ball_radius)
+            ;
+            PMP::interpolated_corrected_curvatures(mesh, params);
         })
     ;
 }
