@@ -25,8 +25,6 @@ Faces = Sequence[Face]
 Edges = Sequence[Edge]
 Halfedges = Sequence[Halfedge]
 
-_PrincCurvMap = PropertyMap[Vertex, PrincipalCurvaturesAndDirections]
-
 if TYPE_CHECKING:
     try:
         import pyvista as pv  # noqa
@@ -421,17 +419,17 @@ class Mesh3:
 
     def interpolated_corrected_curvatures(
             self,
-            ball_radius: float = -1,
+            ball_radius: float = -1.0,
             mean_curvature_map: str | PropertyMap[Vertex, float] = 'mean_curvature',
             gaussian_curvature_map: str | PropertyMap[Vertex, float] = 'gaussian_curvature',
-            principal_curvature_map: str | _PrincCurvMap = 'principal_curvatures',
+            principal_curvature_map: str | VertexPrincipalCurvaturesMap = 'principal_curvature',
     ):
-        mcm = self.vertex_data.get_or_create_property(mean_curvature_map, 0)
-        gcm = self.vertex_data.get_or_create_property(gaussian_curvature_map, 0)
+        mcm = self.vertex_data.get_or_create_property(mean_curvature_map, 0.0)
+        gcm = self.vertex_data.get_or_create_property(gaussian_curvature_map, 0.0)
         pcm = self.vertex_data.get_or_create_property(
             principal_curvature_map, sgm.properties.PrincipalCurvaturesAndDirections())
 
-        sgm.meshing.interpolated_corrected_curvatures(self._mesh, ball_radius, mcm, gcm, pcm)
+        sgm.meshing.interpolated_corrected_curvatures(self._mesh, ball_radius, mcm.pmap, gcm.pmap, pcm.pmap)
 
 
 class Skeleton:
@@ -536,9 +534,6 @@ class PropertyMap(Generic[Key, Val], ABC):
 
 
 class ScalarPropertyMap(PropertyMap[Key, Val]):
-    # def __init__(self, pmap, data: MeshData[Key]):
-    #     super().__init__(pmap=pmap, data=data)
-
     @overload
     def __getitem__(self, key: Union[int, Key]) -> Val: ...
 
@@ -570,9 +565,6 @@ class ScalarPropertyMap(PropertyMap[Key, Val]):
 
 
 class ArrayPropertyMap(PropertyMap[Key, Val]):
-    # def __init__(self, pmap, data: MeshData[Key]):
-    #     super().__init__(pmap=pmap, data=data)
-
     def __getitem__(self, key) -> A:
         if isinstance(key, slice):
             return self.pmap.get_array(self._data.mesh_keys[key])
@@ -622,6 +614,7 @@ class ArrayPropertyMap(PropertyMap[Key, Val]):
 
 
 VertexPointMap = PropertyMap[Vertex, Union[Point2, Point3]]
+VertexPrincipalCurvaturesMap = PropertyMap[Vertex, PrincipalCurvaturesAndDirections]
 UvMap = PropertyMap[Vertex, Point2]
 
 
@@ -642,7 +635,7 @@ class MeshData(Generic[Key]):
 
     def add_property(self, key: str, default: Val) -> PropertyMap[Key, Val]:
         _pmap = self._add_fn(self._mesh, key, default)
-        if isinstance(default, (Point2, Point3, Vector2, Vector3)):
+        if isinstance(default, (Point2, Point3, Vector2, Vector3, PrincipalCurvaturesAndDirections)):
             pmap = ArrayPropertyMap(_pmap, self)
         else:
             pmap = ScalarPropertyMap(_pmap, self)

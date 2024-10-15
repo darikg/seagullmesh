@@ -9,19 +9,21 @@
 #include <CGAL/Polygon_mesh_processing/tangential_relaxation.h>
 #include <CGAL/Polygon_mesh_processing/remesh_planar_patches.h>
 #include <CGAL/Polygon_mesh_processing/interpolated_corrected_curvatures.h>
-
-namespace PMP = CGAL::Polygon_mesh_processing;
-
-typedef PMP::Principal_curvatures_and_directions<Kernel>    PrincipalCurvDir;
+#include <CGAL/Polygon_mesh_processing/Adaptive_sizing_field.h>
 
 typedef std::vector<V>                                      Verts;
 typedef std::vector<F>                                      Faces;
 typedef Mesh3::Property_map<V, Point3>                      VertPoint;
 typedef Mesh3::Property_map<V, double>                      VertDouble;
 typedef Mesh3::Property_map<V, bool>                        VertBool;
-typedef Mesh3::Property_map<V, PrincipalCurvDir>            VertPrincipalCurvDir;
 typedef Mesh3::Property_map<E, bool>                        EdgeBool;
 typedef Mesh3::Property_map<F, F>                           FaceMap;
+
+namespace PMP = CGAL::Polygon_mesh_processing;
+
+typedef PMP::Principal_curvatures_and_directions<Kernel>    PrincipalCurvDir;
+typedef Mesh3::Property_map<V, PrincipalCurvDir>            VertPrincipalCurvDir;
+typedef PMP::Adaptive_sizing_field<Mesh3, VertPoint>        AdaptiveSizingField;
 
 
 struct VertexPointMapWrapper {
@@ -45,7 +47,8 @@ struct VertexPointMapWrapper {
 
 
 void init_meshing(py::module &m) {
-    m.def_submodule("meshing")
+
+    py::module sub = m.def_submodule("meshing")
         .def("remesh", [](
             Mesh3& mesh, 
             const Faces& faces, 
@@ -189,5 +192,18 @@ void init_meshing(py::module &m) {
             ;
             PMP::interpolated_corrected_curvatures(mesh, params);
         })
+    ;
+
+    py::class_<AdaptiveSizingField>(sub, "AdaptiveSizingField", py::module_local())
+        .def(py::init([](
+            const double tol,
+            const std::pair<double, double>& edge_len_min_max,
+            const Faces& faces,
+            Mesh3& mesh,
+            double ball_radius
+        ) {
+            auto params = PMP::parameters::ball_radius(ball_radius);
+            return AdaptiveSizingField(tol, edge_len_min_max, faces, mesh, params);
+        }))
     ;
 }

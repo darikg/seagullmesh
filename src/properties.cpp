@@ -129,6 +129,37 @@ void define_array_2_property_map(py::module &m, std::string name) {
     ;
 }
 
+template <typename Key>
+void define_princ_curv_dir_property_map(py::module &m, std::string name) {
+    using PMap = typename Mesh3::Property_map<Key, PrincipalCurvDir>;
+
+    define_property_map<Key, PrincipalCurvDir>(m, name)
+        .def("get_array", [](const PMap& pmap, const std::vector<Key>& keys) {
+            const size_t nk = keys.size();
+            std::vector<PrincipalCurvDir> vals;
+            vals.reserve(nk);
+            for (auto i = 0; i < nk; i++) {
+                vals.emplace_back(pmap[keys[i]]);
+            }
+            return vals;
+        })
+        .def("what", [](const PMap& pmap) {return 3.0;})
+//        .def("set_array", [](PMap& pmap, const std::vector<Key>& keys, const py::array_t<double>& vals) {
+//            const size_t nk = keys.size();
+//            auto r = vals.unchecked<2>();
+//            if (nk != r.shape(0)) {
+//                throw std::runtime_error("Key and value array sizes do not match");
+//            }
+//            if (2 != r.shape(1)) {
+//                throw std::runtime_error("Expected an array with 2 columns");
+//            }
+//            for (auto i = 0; i < nk; i++) {
+//                pmap[keys[i]] = Val(r(i, 0), r(i, 1));
+//            }
+//        })
+    ;
+}
+
 
 void init_properties(py::module &m) {
     py::module sub = m.def_submodule("properties");
@@ -147,7 +178,6 @@ void init_properties(py::module &m) {
     define_property_map<V, int              >(sub, "VertIntPropertyMap");
     define_property_map<V, size_t           >(sub, "VertUIntPropertyMap");
     define_property_map<V, double           >(sub, "VertDoublePropertyMap");
-    define_property_map<V, PrincipalCurvDir >(sub, "VertPrincipalCurvDirMap");
 
     define_property_map<F, bool    >(sub, "FaceBoolPropertyMap");
     define_property_map<F, int     >(sub, "FaceIntPropertyMap");
@@ -182,6 +212,8 @@ void init_properties(py::module &m) {
     define_array_2_property_map<H, Point2  >(sub, "HalfedgePoint2PropertyMap");
     define_array_2_property_map<H, Vector2 >(sub, "HalfedgeVector2PropertyMap");
 
+    define_princ_curv_dir_property_map<V>(sub, "VertPrincipalCurvDirMap");
+
     sub
      .def("add_vertex_property",   &add_property_map<V, bool>)
      .def("add_vertex_property",   &add_property_map<V, size_t>, py::arg(), py::arg(), py::arg().noconvert())
@@ -191,6 +223,7 @@ void init_properties(py::module &m) {
      .def("add_vertex_property",   &add_property_map<V, Vector3>)
      .def("add_vertex_property",   &add_property_map<V, Point2>)
      .def("add_vertex_property",   &add_property_map<V, Vector2>)
+     .def("add_vertex_property",   &add_property_map<V, PrincipalCurvDir>)
 
      .def("add_face_property",     &add_property_map<F, bool>)
      .def("add_face_property",     &add_property_map<F, size_t>, py::arg(), py::arg(), py::arg().noconvert())
