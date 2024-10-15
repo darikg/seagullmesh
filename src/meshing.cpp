@@ -10,6 +10,7 @@
 #include <CGAL/Polygon_mesh_processing/remesh_planar_patches.h>
 #include <CGAL/Polygon_mesh_processing/interpolated_corrected_curvatures.h>
 #include <CGAL/Polygon_mesh_processing/Adaptive_sizing_field.h>
+#include <CGAL/Polygon_mesh_processing/Uniform_sizing_field.h>
 
 typedef std::vector<V>                                      Verts;
 typedef std::vector<F>                                      Faces;
@@ -24,6 +25,7 @@ namespace PMP = CGAL::Polygon_mesh_processing;
 typedef PMP::Principal_curvatures_and_directions<Kernel>    PrincipalCurvDir;
 typedef Mesh3::Property_map<V, PrincipalCurvDir>            VertPrincipalCurvDir;
 typedef PMP::Adaptive_sizing_field<Mesh3, VertPoint>        AdaptiveSizingField;
+typedef PMP::Uniform_sizing_field<Mesh3, VertPoint>         UniformSizingField;
 
 
 struct VertexPointMapWrapper {
@@ -179,10 +181,23 @@ void init_meshing(py::module &m) {
         })
         .def("interpolated_corrected_curvatures", [](
             const Mesh3& mesh,
-            const double ball_radius,
             VertDouble& mean_curv_map,
             VertDouble& gauss_curv_map,
             VertPrincipalCurvDir& princ_curv_dir_map
+        ) {
+            auto params = PMP::parameters::
+                vertex_mean_curvature_map(mean_curv_map)
+                .vertex_Gaussian_curvature_map(mean_curv_map)
+                .vertex_principal_curvatures_and_directions_map(princ_curv_dir_map)
+            ;
+            PMP::interpolated_corrected_curvatures(mesh, params);
+        })
+        .def("interpolated_corrected_curvatures", [](
+            const Mesh3& mesh,
+            VertDouble& mean_curv_map,
+            VertDouble& gauss_curv_map,
+            VertPrincipalCurvDir& princ_curv_dir_map,
+            const double ball_radius
         ) {
             auto params = PMP::parameters::
                 vertex_mean_curvature_map(mean_curv_map)
@@ -224,6 +239,14 @@ void init_meshing(py::module &m) {
             py::arg("faces"),
             py::arg("mesh"),
             py::arg("ball_radius")
+        )
+    ;
+
+    py::class_<UniformSizingField>(sub, "UniformSizingField", py::module_local())
+        .def(
+            py::init([](const double size, const Mesh3& mesh) {
+                return UniformSizingField(size, mesh);
+            })
         )
     ;
 }

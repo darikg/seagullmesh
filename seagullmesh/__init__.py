@@ -419,7 +419,7 @@ class Mesh3:
 
     def interpolated_corrected_curvatures(
             self,
-            ball_radius: float = -1.0,
+            ball_radius: float | None = None,
             mean_curvature_map: str | PropertyMap[Vertex, float] = 'mean_curvature',
             gaussian_curvature_map: str | PropertyMap[Vertex, float] = 'gaussian_curvature',
             principal_curvature_map: str | VertexPrincipalCurvaturesMap = 'principal_curvature',
@@ -429,7 +429,10 @@ class Mesh3:
         pcm = self.vertex_data.get_or_create_property(
             principal_curvature_map, sgm.properties.PrincipalCurvaturesAndDirections())
 
-        sgm.meshing.interpolated_corrected_curvatures(self._mesh, ball_radius, mcm.pmap, gcm.pmap, pcm.pmap)
+        if ball_radius is not None:
+            sgm.meshing.interpolated_corrected_curvatures(self._mesh, mcm.pmap, gcm.pmap, pcm.pmap, ball_radius)
+        else:
+            sgm.meshing.interpolated_corrected_curvatures(self._mesh, mcm.pmap, gcm.pmap, pcm.pmap)
 
 
 class Skeleton:
