@@ -79,12 +79,36 @@ void define_isotropic_remeshing(py::module &m) {
 void init_meshing(py::module &m) {
 
     py::module sub = m.def_submodule("meshing");
-    define_isotropic_remeshing<VertPoint,        UniformSizingField_VertPoint           >(sub);
-    define_isotropic_remeshing<VertPoint,        AdaptiveSizingField_VertPoint          >(sub);
-    define_isotropic_remeshing<TouchedVertPoint, UniformSizingField_TouchedVertPoint    >(sub);
-    define_isotropic_remeshing<TouchedVertPoint, AdaptiveSizingField_TouchedVertPoint   >(sub);
+//    define_isotropic_remeshing<VertPoint,        UniformSizingField_VertPoint           >(sub);
+//    define_isotropic_remeshing<VertPoint,        AdaptiveSizingField_VertPoint          >(sub);
+//    define_isotropic_remeshing<TouchedVertPoint, UniformSizingField_TouchedVertPoint    >(sub);
+//    define_isotropic_remeshing<TouchedVertPoint, AdaptiveSizingField_TouchedVertPoint   >(sub);
 
-    sub.def("fair", [](Mesh3& mesh, const Verts& verts, const unsigned int fairing_continuity) {
+    sub
+        .def("remesh", [](
+                Mesh3& mesh,
+                const Faces& faces,
+                const double target_edge_length,
+                unsigned int n_iter,
+                bool protect_constraints,
+                VertBool& vertex_is_constrained_map,
+                EdgeBool& edge_is_constrained_map,
+                VertBool& touched
+            ) {
+
+            TouchedVertPoint vertex_point_map(mesh.points(), touched);
+            UniformSizingField_TouchedVertPoint sizing_field(target_edge_length, vertex_point_map);
+
+            auto params = PMP::parameters::
+                number_of_iterations(n_iter)
+                .vertex_point_map(vertex_point_map)
+                .protect_constraints(protect_constraints)
+                .vertex_is_constrained_map(vertex_is_constrained_map)
+                .edge_is_constrained_map(edge_is_constrained_map)
+            ;
+            PMP::isotropic_remeshing(faces, sizing_field, mesh, params);
+        })
+        .def("fair", [](Mesh3& mesh, const Verts& verts, const unsigned int fairing_continuity) {
             // A value controling the tangential continuity of the output surface patch.
             // The possible values are 0, 1 and 2, refering to the C0, C1 and C2 continuity.
             auto params = PMP::parameters::fairing_continuity(fairing_continuity);

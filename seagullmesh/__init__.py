@@ -191,17 +191,12 @@ class Mesh3:
         specified, vertices that were created or moved during the remeshing are flagged as True.
         """
         faces = self.faces if faces is None else faces
-
-        if touched_map:
-            touched_map = self.vertex_data.get_or_create_property(touched_map, default=False)
-            vpm = sgm.meshing.TouchedVertPoint(self._mesh.points, touched_map.pmap)
-            sizing = sgm.meshing.UniformSizingField_TouchedVertPoint(target_edge_length, vpm)
-        else:
-            vpm = self._mesh.points
-            sizing = sgm.meshing.UniformSizingField_VertPoint(target_edge_length, vpm)
-
+        touched_map = self.vertex_data.get_or_create_property(touched_map, default=False)
         with vert_edge_constraint_maps(self, vcm=vertex_constrained, ecm=edge_constrained) as (vcm, ecm):
-            sgm.meshing.remesh(self._mesh, faces, sizing, n_iter, protect_constraints, vcm.pmap, ecm.pmap, vpm)
+            sgm.meshing.remesh(
+                self._mesh, faces, target_edge_length, n_iter, protect_constraints,
+                vcm.pmap, ecm.pmap, touched_map.pmap
+            )
 
     def remesh_adaptive(
             self,
