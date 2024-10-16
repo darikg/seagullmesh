@@ -46,12 +46,6 @@ struct TouchedVertPoint {
     }
 };
 
-// TODO probably don't really need these since don't actually need to be explicit about it
-typedef PMP::Uniform_sizing_field<Mesh3, VertPoint>            UniformSizingField_VertPoint;
-typedef PMP::Uniform_sizing_field<Mesh3, TouchedVertPoint>     UniformSizingField_TouchedVertPoint;
-typedef PMP::Adaptive_sizing_field<Mesh3, VertPoint>           AdaptiveSizingField_VertPoint;
-typedef PMP::Adaptive_sizing_field<Mesh3, TouchedVertPoint>    AdaptiveSizingField_TouchedVertPoint;
-
 
 template <typename Vpm, typename SizingField>
 void define_isotropic_remeshing(py::module &m) {
@@ -98,7 +92,7 @@ void init_meshing(py::module &m) {
             ) {
 
             TouchedVertPoint vertex_point_map(mesh.points(), touched);
-            UniformSizingField_TouchedVertPoint sizing_field(target_edge_length, vertex_point_map);
+            PMP::Uniform_sizing_field<Mesh3, TouchedVertPoint> sizing_field(target_edge_length, vertex_point_map);
 
             auto params = PMP::parameters::
                 number_of_iterations(n_iter)
@@ -119,7 +113,7 @@ void init_meshing(py::module &m) {
                 VertBool& vertex_is_constrained_map,
                 EdgeBool& edge_is_constrained_map
             ) {
-            UniformSizingField_VertPoint sizing_field(target_edge_length, mesh);
+            PMP::Uniform_sizing_field<Mesh3, VertPoint> sizing_field(target_edge_length, mesh);
             auto params = PMP::parameters::
                 number_of_iterations(n_iter)
                 .protect_constraints(protect_constraints)
@@ -143,7 +137,7 @@ void init_meshing(py::module &m) {
             ) {
 
             TouchedVertPoint vertex_point_map(mesh.points(), touched);
-            AdaptiveSizingField_TouchedVertPoint sizing_field(
+            PMP::Adaptive_sizing_field<Mesh3, TouchedVertPoint> sizing_field(
                 tolerance, edge_len_min_max, faces, mesh, PMP::parameters::vertex_point_map(vertex_point_map));
 
             auto params = PMP::parameters::
@@ -168,7 +162,7 @@ void init_meshing(py::module &m) {
                 EdgeBool& edge_is_constrained_map
             ) {
 
-            AdaptiveSizingField_VertPoint sizing_field(
+            PMP::Adaptive_sizing_field<Mesh3, VertPoint> sizing_field(
                 tolerance, edge_len_min_max, faces, mesh);
 
             auto params = PMP::parameters::
