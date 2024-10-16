@@ -171,26 +171,9 @@ class Mesh3:
         tracker, ecm1, ecm2 = _get_corefined_properties(self, other, vert_idx, edge_constrained)
         sgm.corefine.union(self._mesh, other._mesh, ecm1.pmap, ecm2.pmap, tracker)
 
-    def adaptive_sizing_field(
-            self,
-            tolerance: float,
-            edge_len_min_max: Tuple[float, float],
-            faces: Optional[Faces] = None,
-            ball_radius: Optional[float] = None,
-    ) -> AdaptiveSizingField:
-        """An adaptive sizing field for use with `self.remesh`
-
-        Lower tolerance values will result in shorter mesh edges.
-        """
-        faces = self.faces if faces is None else faces
-        if ball_radius is None:
-            return AdaptiveSizingField(tolerance, edge_len_min_max, faces, self._mesh)
-        else:
-            return AdaptiveSizingField(tolerance, edge_len_min_max, faces, self._mesh, ball_radius)
-
     def remesh(
             self,
-            sizing: float | UniformSizingField | AdaptiveSizingField,
+            target_edge_length: float,
             n_iter: int = 1,
             protect_constraints=False,
             vertex_constrained: Optional[Vcm] = '_vcm',
@@ -210,19 +193,40 @@ class Mesh3:
         faces = self.faces if faces is None else faces
 
         if touched_map:
-            touched_map = self.vertex_data.get_or_create_property(
-                touched_map, default=False)
+            touched_map = self.vertex_data.get_or_create_property(touched_map, default=False)
             vpm = sgm.meshing.VertexPointMapWrapper(self._mesh.points, touched_map.pmap)
         else:
             vpm = self._mesh.points
 
-        if not isinstance(sizing, (UniformSizingField, AdaptiveSizingField)):
-            # Assume float-like
-            sizing = UniformSizingField(sizing, self._mesh)
+        sizing = UniformSizingField(target_edge_length, vpm)
 
         with vert_edge_constraint_maps(self, vcm=vertex_constrained, ecm=edge_constrained) as (vcm, ecm):
-            sgm.meshing.remesh(
-                self._mesh, faces, sizing, n_iter, protect_constraints, vcm.pmap, ecm.pmap, vpm)
+            sgm.meshing.remesh(self._mesh, faces, sizing, n_iter, protect_constraints, vcm.pmap, ecm.pmap, vpm)
+
+    def remesh_adaptive(
+            self,
+            edge_len_min_max: Tuple[float, float],
+            tolerance: float,
+            n_iter: int = 1,
+            ball_radius: float = -1.0,
+            protect_constraints=False,
+            vertex_constrained: Optional[Vcm] = '_vcm',
+            edge_constrained: Optional[Ecm] = '_ecm',
+            touched_map: Optional[Vcm] = None,
+            faces: Optional[Faces] = None,
+    ) -> None:
+        faces = self.faces if faces is None else faces
+
+        if touched_map:
+            touched_map = self.vertex_data.get_or_create_property(touched_map, default=False)
+            vpm = sgm.meshing.VertexPointMapWrapper(self._mesh.points, touched_map.pmap)
+        else:
+            vpm = self._mesh.points
+
+        sizing = AdaptiveSizingField(tolerance, edge_len_min_max, faces, ball_radius, vpm)
+
+        with vert_edge_constraint_maps(self, vcm=vertex_constrained, ecm=edge_constrained) as (vcm, ecm):
+            sgm.meshing.remesh(self._mesh, faces, sizing, n_iter, protect_constraints, vcm.pmap, ecm.pmap, vpm)
 
     def fair(self, verts: Vertices, continuity=0) -> None:
         """Fair the specified mesh vertices"""

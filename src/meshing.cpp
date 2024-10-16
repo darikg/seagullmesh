@@ -73,10 +73,10 @@ void define_isotropic_remeshing(py::module &m) {
 void init_meshing(py::module &m) {
 
     py::module sub = m.def_submodule("meshing");
-    define_isotropic_remeshing<VertPoint,               UniformSizingField> (sub);
-    define_isotropic_remeshing<VertPoint,               AdaptiveSizingField>(sub);
-    define_isotropic_remeshing<VertexPointMapWrapper,   UniformSizingField> (sub);
-    define_isotropic_remeshing<VertexPointMapWrapper,   UniformSizingField>(sub);
+//    define_isotropic_remeshing<VertPoint,               UniformSizingField> (sub);
+//    define_isotropic_remeshing<VertPoint,               AdaptiveSizingField>(sub);
+//    define_isotropic_remeshing<VertexPointMapWrapper,   UniformSizingField> (sub);
+//    define_isotropic_remeshing<VertexPointMapWrapper,   UniformSizingField>(sub);
 
     sub.def("fair", [](Mesh3& mesh, const Verts& verts, const unsigned int fairing_continuity) {
             // A value controling the tangential continuity of the output surface patch.
@@ -197,41 +197,40 @@ void init_meshing(py::module &m) {
         })
     ;
 
-    py::class_<AdaptiveSizingField>(sub, "AdaptiveSizingField", py::module_local())
-        .def(
-            py::init([](
-                const double tol,
-                const std::pair<double, double>& edge_len_min_max,
-                const Faces& faces,
-                Mesh3& mesh
-            ) {
-                return AdaptiveSizingField(tol, edge_len_min_max, faces, mesh);
-            }),
-            py::arg("tol"),
-            py::arg("edge_len_min_max"),
-            py::arg("faces"),
-            py::arg("mesh")
-        )
-        .def(
-            py::init([](
-                const double tol,
-                const std::pair<double, double>& edge_len_min_max,
-                const Faces& faces,
-                Mesh3& mesh,
-                double ball_radius
-            ) {
-                return AdaptiveSizingField(tol, edge_len_min_max, faces, mesh, PMP::parameters::ball_radius(ball_radius));
-            }),
-            py::arg("tol"),
-            py::arg("edge_len_min_max"),
-            py::arg("faces"),
-            py::arg("mesh"),
-            py::arg("ball_radius")
-        )
-    ;
+//    py::class_<AdaptiveSizingField>(sub, "AdaptiveSizingField", py::module_local())
+////        .def(
+////            py::init([](
+////                const double tol,
+////                const std::pair<double, double>& edge_len_min_max,
+////                const Faces& faces,
+////                Mesh3& mesh,
+////                double ball_radius,
+////                VertPoint& vpm
+////            ) {
+////                auto params = PMP::parameters::ball_radius(ball_radius).vertex_point_map(vpm);
+////                return AdaptiveSizingField(tol, edge_len_min_max, faces, mesh, params);
+////            })
+////         )
+//        .def(
+//            py::init([](
+//                const double tol,
+//                const std::pair<double, double>& edge_len_min_max,
+//                const Faces& faces,
+//                Mesh3& mesh,
+//                double ball_radius,
+//                const VertexPointMapWrapper& vpm
+//            ) {
+//                auto params = PMP::parameters::ball_radius(ball_radius).vertex_point_map(vpm);
+//                return AdaptiveSizingField(tol, edge_len_min_max, faces, mesh, params);
+//            })
+//        )
+//    ;
 
     py::class_<UniformSizingField>(sub, "UniformSizingField", py::module_local())
         .def(py::init<const double, const Mesh3&>())
+//        .def(py::init<const double, const VertPoint&>())
+//        .def(py::init<const double, const VertexPointMapWrapper&>())
+
     ;
 
     // TODO expoint mesh point map
