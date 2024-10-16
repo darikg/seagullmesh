@@ -46,7 +46,7 @@ struct TouchedVertPoint {
     }
 };
 
-
+// TODO probably don't really need these since don't actually need to be explicit about it
 typedef PMP::Uniform_sizing_field<Mesh3, VertPoint>            UniformSizingField_VertPoint;
 typedef PMP::Uniform_sizing_field<Mesh3, TouchedVertPoint>     UniformSizingField_TouchedVertPoint;
 typedef PMP::Adaptive_sizing_field<Mesh3, VertPoint>           AdaptiveSizingField_VertPoint;
@@ -149,6 +149,30 @@ void init_meshing(py::module &m) {
             auto params = PMP::parameters::
                 number_of_iterations(n_iter)
                 .vertex_point_map(vertex_point_map)
+                .protect_constraints(protect_constraints)
+                .vertex_is_constrained_map(vertex_is_constrained_map)
+                .edge_is_constrained_map(edge_is_constrained_map)
+            ;
+            PMP::isotropic_remeshing(faces, sizing_field, mesh, params);
+        })
+        // Adaptive
+        .def("remesh", [](
+                Mesh3& mesh,
+                const Faces& faces,
+                const double tolerance,
+                const double ball_radius,
+                const std::pair<double, double>& edge_len_min_max,
+                unsigned int n_iter,
+                bool protect_constraints,
+                VertBool& vertex_is_constrained_map,
+                EdgeBool& edge_is_constrained_map
+            ) {
+
+            AdaptiveSizingField_VertPoint sizing_field(
+                tolerance, edge_len_min_max, faces, mesh);
+
+            auto params = PMP::parameters::
+                number_of_iterations(n_iter)
                 .protect_constraints(protect_constraints)
                 .vertex_is_constrained_map(vertex_is_constrained_map)
                 .edge_is_constrained_map(edge_is_constrained_map)
