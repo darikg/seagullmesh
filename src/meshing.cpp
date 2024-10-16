@@ -28,7 +28,7 @@ typedef Mesh3::Property_map<V, PrincipalCurvDir>            VertPrincipalCurvDir
 //typedef PMP::Uniform_sizing_field<Mesh3, VertPoint>         UniformSizingField;
 
 
-struct VertexPointMapWrapper {
+struct TouchedVertPoint {
     // Used for tracking which verts get moved during remesh, etc
     using key_type = V;
     using value_type = Point3;
@@ -38,11 +38,11 @@ struct VertexPointMapWrapper {
     VertPoint& points;
     VertBool& touched;
 
-    VertexPointMapWrapper();
-    VertexPointMapWrapper(VertPoint& p, VertBool& t) : points(p), touched(t) {}
+    TouchedVertPoint();
+    TouchedVertPoint(VertPoint& p, VertBool& t) : points(p), touched(t) {}
 
-    friend Point3& get (const VertexPointMapWrapper& map, V v) { return map.points[v]; }
-    friend void put (const VertexPointMapWrapper& map, V v, const Point3& point) {
+    friend Point3& get (const TouchedVertPoint& map, V v) { return map.points[v]; }
+    friend void put (const TouchedVertPoint& map, V v, const Point3& point) {
         map.points[v] = point;
         map.touched[v] = true;
     }
@@ -76,8 +76,8 @@ void init_meshing(py::module &m) {
     py::module sub = m.def_submodule("meshing");
 //    define_isotropic_remeshing<VertPoint,               UniformSizingField> (sub);
 //    define_isotropic_remeshing<VertPoint,               AdaptiveSizingField>(sub);
-//    define_isotropic_remeshing<VertexPointMapWrapper,   UniformSizingField> (sub);
-//    define_isotropic_remeshing<VertexPointMapWrapper,   UniformSizingField>(sub);
+//    define_isotropic_remeshing<TouchedVertPoint,   UniformSizingField> (sub);
+//    define_isotropic_remeshing<TouchedVertPoint,   UniformSizingField>(sub);
 
     sub.def("fair", [](Mesh3& mesh, const Verts& verts, const unsigned int fairing_continuity) {
             // A value controling the tangential continuity of the output surface patch.
@@ -219,7 +219,7 @@ void init_meshing(py::module &m) {
 //                const Faces& faces,
 //                Mesh3& mesh,
 //                double ball_radius,
-//                const VertexPointMapWrapper& vpm
+//                const TouchedVertPoint& vpm
 //            ) {
 //                auto params = PMP::parameters::ball_radius(ball_radius).vertex_point_map(vpm);
 //                return AdaptiveSizingField(tol, edge_len_min_max, faces, mesh, params);
@@ -227,15 +227,15 @@ void init_meshing(py::module &m) {
 //        )
 //    ;
     // TODO expoint mesh point map
-    py::class_<VertexPointMapWrapper>(sub, "VertexPointMapWrapper")
+    py::class_<TouchedVertPoint>(sub, "TouchedVertPoint")
         .def(py::init<VertPoint&, VertBool&>())
     ;
 
     py::class_<PMP::Uniform_sizing_field<Mesh3, VertPoint>>(sub, "UniformSizingField_VertPoint")
         .def(py::init<const double, const VertPoint&>())
     ;
-    py::class_<PMP::Uniform_sizing_field<Mesh3, VertexPointMapWrapper>>(sub, "_UniformSizingField_points_wrapper")
-        .def(py::init<const double, const VertexPointMapWrapper&>())
+    py::class_<PMP::Uniform_sizing_field<Mesh3, TouchedVertPoint>>(sub, "_UniformSizingField_points_wrapper")
+        .def(py::init<const double, const TouchedVertPoint&>())
     ;
 
 }
