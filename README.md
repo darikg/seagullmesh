@@ -85,10 +85,7 @@ mesh.vertex_data['uv_map'] =  np.random.uniform(-1, 1, (mesh.n_vertices, 2))
 Currently implemented are:
 
 From [PMP Meshing](https://doc.cgal.org/latest/Polygon_mesh_processing/group__PMP__meshing__grp.html):
-  - `mesh.remesh(faces, target_edge_length, n_iterations)`
-    - Isotropic remeshing with a uniform sizing field
-  - `mesh.remesh(faces, sizing_field, n_iterations)`
-    - Isotropic remeshing with an adaptive sizing field
+  - `mesh.remesh(faces, sizing, n_iterations)`
   - `mesh.fair(vertices, fairing_continuity)`
   - `mesh.refine(faces, density)`
   - `mesh.smooth_angle_and_area(faces, n_iterations, do_angle_smoothing, do_area_smoothing)`

@@ -16,6 +16,7 @@ from seagullmesh._seagullmesh.mesh import (  # noqa
     Vertex, Face, Edge, Halfedge,
 )
 from seagullmesh._seagullmesh.properties import PrincipalCurvaturesAndDirections
+from seagullmesh._seagullmesh.meshing import AdaptiveSizingField, UniformSizingField
 
 from seagullmesh import _seagullmesh as sgm
 from ._version import version_info, __version__  # noqa
@@ -170,29 +171,58 @@ class Mesh3:
         tracker, ecm1, ecm2 = _get_corefined_properties(self, other, vert_idx, edge_constrained)
         sgm.corefine.union(self._mesh, other._mesh, ecm1.pmap, ecm2.pmap, tracker)
 
+    def adaptive_sizing_field(
+            self,
+            tolerance: float,
+            edge_len_min_max: Tuple[float, float],
+            faces: Optional[Faces] = None,
+            ball_radius: Optional[float] = None,
+    ) -> AdaptiveSizingField:
+        """An adaptive sizing field for use with `self.remesh`
+
+        Lower tolerance values will result in shorter mesh edges.
+        """
+        faces = self.faces if faces is None else faces
+        if ball_radius is None:
+            return AdaptiveSizingField(tolerance, edge_len_min_max, faces, self._mesh)
+        else:
+            return AdaptiveSizingField(tolerance, edge_len_min_max, faces, self._mesh, ball_radius)
+
     def remesh(
             self,
-            faces: Faces,
-            target_edge_length: float,
-            n_iter: int,
+            sizing: float | UniformSizingField | AdaptiveSizingField,
+            n_iter: int = 1,
             protect_constraints=False,
             vertex_constrained: Optional[Vcm] = '_vcm',
             edge_constrained: Optional[Ecm] = '_ecm',
             touched_map: Optional[Vcm] = None,
+            faces: Optional[Faces] = None,
     ) -> None:
         """Perform isotropic remeshing on the specified faces.
 
-        If an optional `touched_map` mapping vertices to bools is specified, vertices that were created or moved during
-        the remeshing are flagged as True.
+        If `sizing` is a scalar float value, it defines the target edge length. It can also be
+        an `AdaptiveSizingField` for curvature-dependent edge lengths, see
+        `self.adaptive_sizing_field` for constructing it.
+
+        If an optional `touched_map: PropertyMap[Vertex, bool]` mapping vertices to bools is
+        specified, vertices that were created or moved during the remeshing are flagged as True.
         """
+        faces = self.faces if faces is None else faces
+
+        if touched_map:
+            touched_map = self.vertex_data.get_or_create_property(
+                touched_map, default=False)
+            vpm = sgm.meshing.VertexPointMapWrapper(self._mesh.points, touched_map.pmap)
+        else:
+            vpm = self._mesh.points
+
+        if not isinstance(sizing, (UniformSizingField, AdaptiveSizingField)):
+            # Assume float-like
+            sizing = UniformSizingField(sizing, self._mesh)
+
         with vert_edge_constraint_maps(self, vcm=vertex_constrained, ecm=edge_constrained) as (vcm, ecm):
-            if touched_map:
-                touched = self.vertex_data.get_or_create_property(touched_map, default=False)
-                sgm.meshing.remesh(
-                    self._mesh, faces, target_edge_length, n_iter, protect_constraints, touched.pmap, vcm.pmap, ecm.pmap)
-            else:
-                sgm.meshing.remesh(
-                    self._mesh, faces, target_edge_length, n_iter, protect_constraints, vcm.pmap, ecm.pmap)
+            sgm.meshing.remesh(
+                self._mesh, faces, sizing, n_iter, protect_constraints, vcm.pmap, ecm.pmap, vpm)
 
     def fair(self, verts: Vertices, continuity=0) -> None:
         """Fair the specified mesh vertices"""
