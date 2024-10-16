@@ -25,6 +25,11 @@ auto define_property_map(py::module &m, std::string name) {
     });
 
     return py::class_<PMap>(m, name.c_str(), py::buffer_protocol(), py::dynamic_attr())
+        .def(
+            py::init([](Mesh3& mesh, std::string name, const Val default_val) {
+                return add_property_map<Key, Val>(mesh, name, default_val);
+            })
+        )
         .def("__getitem__", [](const PMap& pmap, const Key& key) {
             Val val = pmap[key];
             return val;

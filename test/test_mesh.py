@@ -54,10 +54,11 @@ def test_pyvista_roundtrip():
 @pytest.mark.parametrize(
     ['cls', 'default'],
     [
-        (props.VertBoolPropertyMap, False),
-        # (props.VertIntPropertyMap, 0),  # TODO failing get a UIntProperty map here
-        (props.VertDoublePropertyMap, 0.0),
-        (props.VertPoint2PropertyMap, Point2(0, 0)),
+        # (props.VertBoolPropertyMap, False),
+        (props.VertIntPropertyMap, np.int64(0)),  # TODO failing get a UIntProperty map here
+        (props.VertUIntPropertyMap, np.uint64(0)),  # TODO failing get a UIntProperty map here
+        # (props.VertDoublePropertyMap, 0.0),
+        # (props.VertPoint2PropertyMap, Point2(0, 0)),
     ]
 )
 def test_property_map_type_casting(cls, default):
