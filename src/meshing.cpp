@@ -24,8 +24,8 @@ namespace PMP = CGAL::Polygon_mesh_processing;
 
 typedef PMP::Principal_curvatures_and_directions<Kernel>    PrincipalCurvDir;
 typedef Mesh3::Property_map<V, PrincipalCurvDir>            VertPrincipalCurvDir;
-typedef PMP::Adaptive_sizing_field<Mesh3, VertPoint>        AdaptiveSizingField;
-typedef PMP::Uniform_sizing_field<Mesh3, VertPoint>         UniformSizingField;
+//typedef PMP::Adaptive_sizing_field<Mesh3, VertPoint>        AdaptiveSizingField;
+//typedef PMP::Uniform_sizing_field<Mesh3, VertPoint>         UniformSizingField;
 
 
 struct VertexPointMapWrapper {
@@ -38,6 +38,7 @@ struct VertexPointMapWrapper {
     VertPoint& points;
     VertBool& touched;
 
+    VertexPointMapWrapper();
     VertexPointMapWrapper(VertPoint& p, VertBool& t) : points(p), touched(t) {}
 
     friend Point3& get (const VertexPointMapWrapper& map, V v) { return map.points[v]; }
@@ -230,12 +231,11 @@ void init_meshing(py::module &m) {
         .def(py::init<VertPoint&, VertBool&>())
     ;
 
-    py::class_<UniformSizingField>(sub, "UniformSizingField", py::module_local())
-        // .def(py::init<const double, const Mesh3&>())
+    py::class_<PMP::Uniform_sizing_field<Mesh3, VertPoint>>(sub, "UniformSizingField_VertPoint")
         .def(py::init<const double, const VertPoint&>())
-        //.def(py::init<const double, const VertexPointMapWrapper&>())
-
     ;
-
+    py::class_<PMP::Uniform_sizing_field<Mesh3, VertexPointMapWrapper>>(sub, "_UniformSizingField_points_wrapper")
+        .def(py::init<const double, const VertexPointMapWrapper&>())
+    ;
 
 }

@@ -16,7 +16,7 @@ from seagullmesh._seagullmesh.mesh import (  # noqa
     Vertex, Face, Edge, Halfedge,
 )
 from seagullmesh._seagullmesh.properties import PrincipalCurvaturesAndDirections
-from seagullmesh._seagullmesh.meshing import AdaptiveSizingField, UniformSizingField
+# from seagullmesh._seagullmesh.meshing import AdaptiveSizingField, UniformSizingField
 
 from seagullmesh import _seagullmesh as sgm
 from ._version import version_info, __version__  # noqa
