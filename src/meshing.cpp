@@ -225,16 +225,17 @@ void init_meshing(py::module &m) {
 //            })
 //        )
 //    ;
-
-    py::class_<UniformSizingField>(sub, "UniformSizingField", py::module_local())
-        .def(py::init<const double, const Mesh3&>())
-        .def(py::init<const double, const VertPoint&>())
-//        .def(py::init<const double, const VertexPointMapWrapper&>())
-
-    ;
-
     // TODO expoint mesh point map
     py::class_<VertexPointMapWrapper>(sub, "VertexPointMapWrapper")
         .def(py::init<VertPoint&, VertBool&>())
     ;
+
+    py::class_<UniformSizingField>(sub, "UniformSizingField", py::module_local())
+        // .def(py::init<const double, const Mesh3&>())
+        .def(py::init<const double, const VertPoint&>())
+        //.def(py::init<const double, const VertexPointMapWrapper&>())
+
+    ;
+
+
 }
