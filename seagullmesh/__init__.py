@@ -194,11 +194,11 @@ class Mesh3:
 
         if touched_map:
             touched_map = self.vertex_data.get_or_create_property(touched_map, default=False)
-            vpm = sgm.meshing.VertexPointMapWrapper(self._mesh.points, touched_map.pmap)
+            vpm = sgm.meshing.TouchedVertPoint(self._mesh.points, touched_map.pmap)
+            sizing = sgm.meshing.UniformSizingField_TouchedVertPoint(target_edge_length, vpm)
         else:
             vpm = self._mesh.points
-
-        sizing = UniformSizingField(target_edge_length, vpm)
+            sizing = sgm.meshing.UniformSizingField_VertPoint(target_edge_length, vpm)
 
         with vert_edge_constraint_maps(self, vcm=vertex_constrained, ecm=edge_constrained) as (vcm, ecm):
             sgm.meshing.remesh(self._mesh, faces, sizing, n_iter, protect_constraints, vcm.pmap, ecm.pmap, vpm)
@@ -219,11 +219,15 @@ class Mesh3:
 
         if touched_map:
             touched_map = self.vertex_data.get_or_create_property(touched_map, default=False)
-            vpm = sgm.meshing.VertexPointMapWrapper(self._mesh.points, touched_map.pmap)
+            vpm = sgm.meshing.TouchedVertPoint(self._mesh.points, touched_map.pmap)
+            sizing = sgm.meshing.AdaptiveSizingField_TouchedVertPoint(
+                tolerance, edge_len_min_max, faces, self._mesh, ball_radius, vpm
+            )
         else:
             vpm = self._mesh.points
-
-        sizing = AdaptiveSizingField(tolerance, edge_len_min_max, faces, ball_radius, vpm)
+            sizing = sgm.meshing.AdaptiveSizingField_VertPoint(
+                tolerance, edge_len_min_max, faces, self._mesh, ball_radius
+            )
 
         with vert_edge_constraint_maps(self, vcm=vertex_constrained, ecm=edge_constrained) as (vcm, ecm):
             sgm.meshing.remesh(self._mesh, faces, sizing, n_iter, protect_constraints, vcm.pmap, ecm.pmap, vpm)

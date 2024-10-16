@@ -24,8 +24,6 @@ namespace PMP = CGAL::Polygon_mesh_processing;
 
 typedef PMP::Principal_curvatures_and_directions<Kernel>    PrincipalCurvDir;
 typedef Mesh3::Property_map<V, PrincipalCurvDir>            VertPrincipalCurvDir;
-//typedef PMP::Adaptive_sizing_field<Mesh3, VertPoint>        AdaptiveSizingField;
-//typedef PMP::Uniform_sizing_field<Mesh3, VertPoint>         UniformSizingField;
 
 
 struct TouchedVertPoint {
@@ -47,6 +45,13 @@ struct TouchedVertPoint {
         map.touched[v] = true;
     }
 };
+
+
+typedef PMP::Uniform_sizing_field<Mesh3, VertPoint>            UniformSizingField_VertPoint;
+typedef PMP::Uniform_sizing_field<Mesh3, TouchedVertPoint>     UniformSizingField_TouchedVertPoint;
+typedef PMP::Adaptive_sizing_field<Mesh3, VertPoint>           AdaptiveSizingField_VertPoint;
+typedef PMP::Adaptive_sizing_field<Mesh3, TouchedVertPoint>    AdaptiveSizingField_TouchedVertPoint;
+
 
 template <typename Vpm, typename SizingField>
 void define_isotropic_remeshing(py::module &m) {
@@ -74,10 +79,10 @@ void define_isotropic_remeshing(py::module &m) {
 void init_meshing(py::module &m) {
 
     py::module sub = m.def_submodule("meshing");
-//    define_isotropic_remeshing<VertPoint,               UniformSizingField> (sub);
-//    define_isotropic_remeshing<VertPoint,               AdaptiveSizingField>(sub);
-//    define_isotropic_remeshing<TouchedVertPoint,   UniformSizingField> (sub);
-//    define_isotropic_remeshing<TouchedVertPoint,   UniformSizingField>(sub);
+    define_isotropic_remeshing<VertPoint,        UniformSizingField_VertPoint           >(sub);
+    define_isotropic_remeshing<VertPoint,        AdaptiveSizingField_VertPoint          >(sub);
+    define_isotropic_remeshing<TouchedVertPoint, UniformSizingField_TouchedVertPoint    >(sub);
+    define_isotropic_remeshing<TouchedVertPoint, AdaptiveSizingField_TouchedVertPoint   >(sub);
 
     sub.def("fair", [](Mesh3& mesh, const Verts& verts, const unsigned int fairing_continuity) {
             // A value controling the tangential continuity of the output surface patch.
@@ -198,44 +203,43 @@ void init_meshing(py::module &m) {
         })
     ;
 
-//    py::class_<AdaptiveSizingField>(sub, "AdaptiveSizingField", py::module_local())
-////        .def(
-////            py::init([](
-////                const double tol,
-////                const std::pair<double, double>& edge_len_min_max,
-////                const Faces& faces,
-////                Mesh3& mesh,
-////                double ball_radius,
-////                VertPoint& vpm
-////            ) {
-////                auto params = PMP::parameters::ball_radius(ball_radius).vertex_point_map(vpm);
-////                return AdaptiveSizingField(tol, edge_len_min_max, faces, mesh, params);
-////            })
-////         )
-//        .def(
-//            py::init([](
-//                const double tol,
-//                const std::pair<double, double>& edge_len_min_max,
-//                const Faces& faces,
-//                Mesh3& mesh,
-//                double ball_radius,
-//                const TouchedVertPoint& vpm
-//            ) {
-//                auto params = PMP::parameters::ball_radius(ball_radius).vertex_point_map(vpm);
-//                return AdaptiveSizingField(tol, edge_len_min_max, faces, mesh, params);
-//            })
-//        )
-//    ;
-    // TODO expoint mesh point map
     py::class_<TouchedVertPoint>(sub, "TouchedVertPoint")
         .def(py::init<VertPoint&, VertBool&>())
     ;
 
-    py::class_<PMP::Uniform_sizing_field<Mesh3, VertPoint>>(sub, "UniformSizingField_VertPoint")
+    py::class_<UniformSizingField_VertPoint>(sub, "UniformSizingField_VertPoint")
         .def(py::init<const double, const VertPoint&>())
     ;
-    py::class_<PMP::Uniform_sizing_field<Mesh3, TouchedVertPoint>>(sub, "_UniformSizingField_points_wrapper")
+    py::class_<UniformSizingField_TouchedVertPoint>(sub, "UniformSizingField_TouchedVertPoint")
         .def(py::init<const double, const TouchedVertPoint&>())
     ;
-
+    py::class_<AdaptiveSizingField_VertPoint>(sub, "AdaptiveSizingField_VertPoint")
+        .def(
+            py::init([](
+                const double tol,
+                const std::pair<double, double>& edge_len_min_max,
+                const Faces& faces,
+                Mesh3& mesh,
+                double ball_radius
+            ) {
+                auto params = PMP::parameters::ball_radius(ball_radius);
+                return AdaptiveSizingField_VertPoint(tol, edge_len_min_max, faces, mesh, params);
+            })
+        )
+    ;
+    py::class_<AdaptiveSizingField_TouchedVertPoint>(sub, "AdaptiveSizingField_TouchedVertPoint")
+        .def(
+            py::init([](
+                const double tol,
+                const std::pair<double, double>& edge_len_min_max,
+                const Faces& faces,
+                Mesh3& mesh,
+                double ball_radius,
+                const TouchedVertPoint& vpm
+            ) {
+                auto params = PMP::parameters::ball_radius(ball_radius).vertex_point_map(vpm);
+                return AdaptiveSizingField_TouchedVertPoint(tol, edge_len_min_max, faces, mesh, params);
+            })
+        )
+    ;
 }
