@@ -85,6 +85,7 @@ void init_meshing(py::module &m) {
 //    define_isotropic_remeshing<TouchedVertPoint, AdaptiveSizingField_TouchedVertPoint   >(sub);
 
     sub
+        // Uniform touched
         .def("remesh", [](
                 Mesh3& mesh,
                 const Faces& faces,
@@ -98,6 +99,52 @@ void init_meshing(py::module &m) {
 
             TouchedVertPoint vertex_point_map(mesh.points(), touched);
             UniformSizingField_TouchedVertPoint sizing_field(target_edge_length, vertex_point_map);
+
+            auto params = PMP::parameters::
+                number_of_iterations(n_iter)
+                .vertex_point_map(vertex_point_map)
+                .protect_constraints(protect_constraints)
+                .vertex_is_constrained_map(vertex_is_constrained_map)
+                .edge_is_constrained_map(edge_is_constrained_map)
+            ;
+            PMP::isotropic_remeshing(faces, sizing_field, mesh, params);
+        })
+        // Uniform
+        .def("remesh", [](
+                Mesh3& mesh,
+                const Faces& faces,
+                const double target_edge_length,
+                unsigned int n_iter,
+                bool protect_constraints,
+                VertBool& vertex_is_constrained_map,
+                EdgeBool& edge_is_constrained_map
+            ) {
+            UniformSizingField_VertPoint sizing_field(target_edge_length, mesh);
+            auto params = PMP::parameters::
+                number_of_iterations(n_iter)
+                .protect_constraints(protect_constraints)
+                .vertex_is_constrained_map(vertex_is_constrained_map)
+                .edge_is_constrained_map(edge_is_constrained_map)
+            ;
+            PMP::isotropic_remeshing(faces, sizing_field, mesh, params);
+        })
+        // Adaptive touched
+        .def("remesh", [](
+                Mesh3& mesh,
+                const Faces& faces,
+                const double tolerance,
+                const double ball_radius,
+                const std::pair<double, double>& edge_len_min_max,
+                unsigned int n_iter,
+                bool protect_constraints,
+                VertBool& vertex_is_constrained_map,
+                EdgeBool& edge_is_constrained_map,
+                VertBool& touched
+            ) {
+
+            TouchedVertPoint vertex_point_map(mesh.points(), touched);
+            AdaptiveSizingField_TouchedVertPoint sizing_field(
+                tolerance, edge_len_min_max, faces, mesh, PMP::parameters::vertex_point_map(vertex_point_map));
 
             auto params = PMP::parameters::
                 number_of_iterations(n_iter)
@@ -225,45 +272,5 @@ void init_meshing(py::module &m) {
             ;
             PMP::interpolated_corrected_curvatures(mesh, params);
         })
-    ;
-
-    py::class_<TouchedVertPoint>(sub, "TouchedVertPoint")
-        .def(py::init<VertPoint&, VertBool&>())
-    ;
-
-    py::class_<UniformSizingField_VertPoint>(sub, "UniformSizingField_VertPoint")
-        .def(py::init<const double, const VertPoint&>())
-    ;
-    py::class_<UniformSizingField_TouchedVertPoint>(sub, "UniformSizingField_TouchedVertPoint")
-        .def(py::init<const double, const TouchedVertPoint&>())
-    ;
-    py::class_<AdaptiveSizingField_VertPoint>(sub, "AdaptiveSizingField_VertPoint")
-        .def(
-            py::init([](
-                const double tol,
-                const std::pair<double, double>& edge_len_min_max,
-                const Faces& faces,
-                Mesh3& mesh,
-                double ball_radius
-            ) {
-                auto params = PMP::parameters::ball_radius(ball_radius);
-                return AdaptiveSizingField_VertPoint(tol, edge_len_min_max, faces, mesh, params);
-            })
-        )
-    ;
-    py::class_<AdaptiveSizingField_TouchedVertPoint>(sub, "AdaptiveSizingField_TouchedVertPoint")
-        .def(
-            py::init([](
-                const double tol,
-                const std::pair<double, double>& edge_len_min_max,
-                const Faces& faces,
-                Mesh3& mesh,
-                double ball_radius,
-                const TouchedVertPoint& vpm
-            ) {
-                auto params = PMP::parameters::ball_radius(ball_radius).vertex_point_map(vpm);
-                return AdaptiveSizingField_TouchedVertPoint(tol, edge_len_min_max, faces, mesh, params);
-            })
-        )
     ;
 }

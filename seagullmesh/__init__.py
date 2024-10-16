@@ -191,12 +191,14 @@ class Mesh3:
         specified, vertices that were created or moved during the remeshing are flagged as True.
         """
         faces = self.faces if faces is None else faces
-        touched_map = self.vertex_data.get_or_create_property(touched_map, default=False)
         with vert_edge_constraint_maps(self, vcm=vertex_constrained, ecm=edge_constrained) as (vcm, ecm):
-            sgm.meshing.remesh(
-                self._mesh, faces, target_edge_length, n_iter, protect_constraints,
-                vcm.pmap, ecm.pmap, touched_map.pmap
-            )
+            if touched_map:
+                touched_map = self.vertex_data.get_or_create_property(touched_map, default=False)
+                sgm.meshing.remesh(self._mesh, faces, target_edge_length, n_iter, protect_constraints,
+                                   vcm.pmap, ecm.pmap, touched_map.pmap)
+            else:
+                sgm.meshing.remesh(self._mesh, faces, target_edge_length, n_iter, protect_constraints,
+                                   vcm.pmap, ecm.pmap)
 
     def remesh_adaptive(
             self,
@@ -212,20 +214,14 @@ class Mesh3:
     ) -> None:
         faces = self.faces if faces is None else faces
 
-        if touched_map:
-            touched_map = self.vertex_data.get_or_create_property(touched_map, default=False)
-            vpm = sgm.meshing.TouchedVertPoint(self._mesh.points, touched_map.pmap)
-            sizing = sgm.meshing.AdaptiveSizingField_TouchedVertPoint(
-                tolerance, edge_len_min_max, faces, self._mesh, ball_radius, vpm
-            )
-        else:
-            vpm = self._mesh.points
-            sizing = sgm.meshing.AdaptiveSizingField_VertPoint(
-                tolerance, edge_len_min_max, faces, self._mesh, ball_radius
-            )
-
         with vert_edge_constraint_maps(self, vcm=vertex_constrained, ecm=edge_constrained) as (vcm, ecm):
-            sgm.meshing.remesh(self._mesh, faces, sizing, n_iter, protect_constraints, vcm.pmap, ecm.pmap, vpm)
+            if touched_map:
+                touched_map = self.vertex_data.get_or_create_property(touched_map, default=False)
+                sgm.meshing.remesh(self._mesh, faces, tolerance, ball_radius, edge_len_min_max,
+                                   n_iter, protect_constraints, vcm.pmap, ecm.pmap, touched_map.pmap)
+            else:
+                sgm.meshing.remesh(self._mesh, faces, tolerance, ball_radius, edge_len_min_max,
+                                  n_iter, protect_constraints, vcm.pmap, ecm.pmap)
 
     def fair(self, verts: Vertices, continuity=0) -> None:
         """Fair the specified mesh vertices"""
