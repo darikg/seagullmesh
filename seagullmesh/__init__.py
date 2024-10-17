@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import numpy as np
+
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from functools import cached_property
@@ -62,9 +64,18 @@ class Mesh3:
     def volume(self) -> float:
         return self._mesh.volume()
 
-    def edge_vertices(self, edges: Edges) -> A:
+    def edge_vertices(self, edges: Edges | None = None) -> A:
         """Returns a len(edges) * 2 array of integer vertex indices"""
+        edges = self.edges if edges is None else edges
         return self._mesh.edge_vertices(edges)
+
+    def edge_lengths(self, edges: Edges | None = None) -> A:
+        edges = self.edges if edges is None else edges
+        points = self.vertex_data['points'][:]
+        return np.linalg.norm(
+            np.diff(points[self.edge_vertices(edges)], axis=1).squeeze(axis=1),
+            axis=1,
+        )
 
     def expand_selection(self, selection: Sequence[Key]) -> Sequence[Key]:
         """Given a list of vertices or faces, returns a sequence containing the original and adjacent elements"""
