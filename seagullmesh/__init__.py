@@ -311,11 +311,17 @@ class Mesh3:
         """
         return sgm.locate.shortest_path(self._mesh, src_face, src_bc, tgt_face, tgt_bc)
 
-    def lscm(self, uv_map: Union[str, UvMap]):
-        """Performs least-squares conformal mapping"""
+    def lscm(self, uv_map: Union[str, UvMap], initial_verts: Tuple[Vertex, Vertex] = None) -> str:
+        """Performs least-squares conformal mapping
+
+        initial_verts are indices into the UV map whose coordinates have been fixed
+        """
         if isinstance(uv_map, str):
             uv_map = self.vertex_data.get_or_create_property(uv_map, default=Point2(0, 0))
-        sgm.parametrize.lscm(self._mesh, uv_map.pmap)
+        if initial_verts is not None:
+            return sgm.parametrize.lscm(self._mesh, uv_map.pmap, *initial_verts)
+        else:
+            return sgm.parametrize.lscm(self._mesh, uv_map.pmap)
 
     def arap(self, uv_map: Union[str, UvMap]):
         """Performs as-rigid-as-possible parameterization"""
