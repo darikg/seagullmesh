@@ -17,8 +17,6 @@ from seagullmesh._seagullmesh.mesh import (  # noqa
     Point2, Point3, Vector2, Vector3,
     Vertex, Face, Edge, Halfedge,
 )
-from seagullmesh._seagullmesh.properties import PrincipalCurvaturesAndDirections
-# from seagullmesh._seagullmesh.meshing import AdaptiveSizingField, UniformSizingField
 
 from seagullmesh import _seagullmesh as sgm
 from ._version import version_info, __version__  # noqa
@@ -40,13 +38,14 @@ A = ndarray
 class Mesh3:
     def __init__(self, mesh: _Mesh3):
         self._mesh = mesh
-        self.vertex_data = MeshData(mesh, sgm.properties.add_vertex_property, 'vertices')
-        self.vertex_data.assign_property_map('points', ArrayPropertyMap, mesh.points)
-        self.face_data = MeshData(mesh, sgm.properties.add_face_property, 'faces')
-        self.edge_data = MeshData(mesh, sgm.properties.add_edge_property, 'edges')
+        self.vertex_data = MeshData(mesh, sgm.properties.add_vertex_property, 'vertices', 'Vert')
+        self.face_data = MeshData(mesh, sgm.properties.add_face_property, 'faces', 'Face')
+        self.edge_data = MeshData(mesh, sgm.properties.add_edge_property, 'edges', 'Edge')
         # self.halfedge_data = MeshData(mesh, sgm.properties.add_halfedge_property, 'halfedges')
 
-    mesh = property(lambda self: self._mesh)
+        # Mesh3 automatically constructs a vertex point 3 property, make it available
+        # from the python side
+        self.vertex_data.assign_property_map('points', mesh.points)
 
     vertices = property(lambda self: array(self._mesh.vertices))
     faces = property(lambda self: array(self._mesh.faces))
@@ -54,12 +53,17 @@ class Mesh3:
     # halfedges = property(lambda self: array(self._mesh.halfedges))
 
     # todo: no point to return arrays here, assume it's just a copy/paste mistake
-    n_vertices = property(lambda self: array(self._mesh.n_vertices))
-    n_faces = property(lambda self: array(self._mesh.n_faces))
-    n_edges = property(lambda self: array(self._mesh.n_edges))
-    n_halfedges = property(lambda self: array(self._mesh.n_halfedges))
+    n_vertices = property(lambda self: self._mesh.n_vertices)
+    n_faces = property(lambda self: self._mesh.n_faces)
+    n_edges = property(lambda self: self._mesh.n_edges)
+    n_halfedges = property(lambda self: self._mesh.n_halfedges)
 
     is_valid = property(lambda self: self._mesh.is_valid)
+
+    @property
+    def mesh(self) -> sgm.mesh.Mesh3:
+        """The C++ mesh object"""
+        return self._mesh
 
     def volume(self) -> float:
         return self._mesh.volume()
@@ -657,16 +661,17 @@ class ArrayPropertyMap(PropertyMap[Key, Val]):
 
 
 VertexPointMap = PropertyMap[Vertex, Union[Point2, Point3]]
-VertexPrincipalCurvaturesMap = PropertyMap[Vertex, PrincipalCurvaturesAndDirections]
+VertexPrincipalCurvaturesMap = PropertyMap[Vertex, sgm.properties.PrincipalCurvaturesAndDirections]
 UvMap = PropertyMap[Vertex, Point2]
 
 
 class MeshData(Generic[Key]):
-    def __init__(self, mesh: Mesh3, add_fn, key_name: str):
+    def __init__(self, mesh: Mesh3, add_fn, key_name: str, prefix: str):
         self._data: Dict[str, PropertyMap[Key]] = {}
         self._mesh = mesh
-        self._add_fn = add_fn
-        self._key_name = key_name
+        self._add_fn = add_fn  # e.g. sgm.properties.add_vertex_property, etc
+        self._key_name = key_name  # e.g. 'vertices', 'faces', etc
+        self._cpp_cls_prefix = prefix  # e.g. 'Vert', 'Face', etc
 
     @property
     def mesh_keys(self) -> List[Key]:
@@ -676,31 +681,64 @@ class MeshData(Generic[Key]):
     def n_mesh_keys(self) -> int:
         return getattr(self._mesh, f'n_{self._key_name}')
 
-    def add_property(self, key: str, default: Val) -> PropertyMap[Key, Val]:
-        _pmap = self._add_fn(self._mesh, key, default)
-        if isinstance(default, (Point2, Point3, Vector2, Vector3, PrincipalCurvaturesAndDirections)):
-            pmap = ArrayPropertyMap(_pmap, self)
-        else:
-            pmap = ScalarPropertyMap(_pmap, self)
+    def add_property(
+            self,
+            key: str,
+            default: Val,
+            signed: Optional[bool] = None,
+    ) -> PropertyMap[Key, Val]:
+        """Add a property map
 
-        self._data[key] = pmap
-        return pmap
+        The type of the map's value is inferred from the default value. E.g.
+        `mesh.vertex_data.add_property('foo', 0.0)` constructs a VertDoublePropertyMap named 'foo'
+        storing doubles on vertices and `mesh.face_data.add_property('bar', Point2(0, 0))` stores
+        2d points on mesh faces.
+
+        There is an ambiguity when constructing int-valued property maps where some CGAL routines
+        require either signed or unsigned ints, so the optional `signed` parameter can make it
+        explicit whether signed or unsigned ints are required.
+        """
+        if signed is None:
+            # Infer C++ property map type from the default
+            pmap = self._add_fn(self._mesh, key, default)
+        elif isinstance(default, int):
+            # Specify e.g. "VertIntPropertyMap", "VertUIntPropertyMap"
+            pmap_cls = f"{self._cpp_cls_prefix}{'' if signed else 'U'}PropertyMap"
+            pmap = getattr(sgm.properties, pmap_cls)(self._mesh.mesh, key, default)
+        else:
+            raise TypeError(
+                f"Can only specify signed for int values, got default = {type(default)}")
+
+        return self.assign_property_map(name=key, pmap=pmap)  # The wrapped map
 
     def remove_property(self, key: str):
         pmap = self._data.pop(key)
         sgm.properties.remove_property_map(self._mesh, pmap.pmap)
 
-    def assign_property_map(self, name: str, cls: Type[PropertyMap], pmap):
-        self._data[name] = cls(pmap=pmap, data=self)
+    def assign_property_map(
+            self,
+            name: str,
+            pmap,  # The C++ property map
+            wrapper_cls: Type[PropertyMap] | None = None
+    ) -> PropertyMap:
+        if wrapper_cls is None:
+            wrapper_cls = ScalarPropertyMap if pmap._is_scalar else ArrayPropertyMap
+        wrapped_pmap = self._data[name] = wrapper_cls(pmap=pmap, data=self)
+        return wrapped_pmap
 
-    def get_or_create_property(self, key: Union[str, PropertyMap[Key, Val]], default: Val) -> PropertyMap[Key, Val]:
+    def get_or_create_property(
+            self,
+            key: Union[str, PropertyMap[Key, Val]],
+            default: Val,
+            signed: bool | None = None,
+    ) -> PropertyMap[Key, Val]:
         if isinstance(key, PropertyMap):
             return key
 
         if key in self._data:
             return self._data[key]
         else:
-            return self.add_property(key, default)
+            return self.add_property(key, default, signed=signed)
 
     def __getitem__(self, item: str) -> PropertyMap[Key, Any]:
         return self._data[item]
@@ -708,7 +746,13 @@ class MeshData(Generic[Key]):
     def __delitem__(self, item: str):
         self.remove_property(item)
 
-    def __setitem__(self, key: str, value: ndarray):
+    def __setitem__(self, key: str, value: Any):
+        if hasattr(value, "_is_sgm_property_map"):
+            # Assigning the bare C++ property map
+            self.assign_property_map(name=key, pmap=value)
+            return
+
+        # Implicit construction of a new property map with initial value(s) `value`
         default = zeros_like(value, shape=()).item()
         pmap = self.get_or_create_property(key, default)
         pmap[self.mesh_keys] = value

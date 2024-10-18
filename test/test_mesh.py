@@ -23,6 +23,10 @@ def tetrahedron(scale=1.0, rot_z=0.0):
     return verts, faces
 
 
+def tetrahedron_mesh() -> Mesh3:
+    return Mesh3.from_polygon_soup(*tetrahedron())
+
+
 def test_from_polygon_soup():
     verts, faces = tetrahedron()
     mesh = Mesh3.from_polygon_soup(verts, faces)
@@ -49,6 +53,20 @@ def test_pyvista_roundtrip():
     pvmesh0 = Sphere().clean().triangulate()
     mesh = Mesh3.from_pyvista(pvmesh0)
     _pvmesh1 = mesh.to_pyvista()
+
+
+@pytest.mark.parametrize(
+    ['cls', 'default'],
+    [
+        (props.VertIntPropertyMap, 0),  # TODO failing get a UIntProperty map here
+        (props.VertUIntPropertyMap, 0),  # TODO failing get a UIntProperty map here
+    ]
+)
+def test_explicit_property_map_construction(cls, default):
+    mesh = tetrahedron_mesh()
+    d = mesh.vertex_data
+    d['foo'] = cls(mesh.mesh, 'foo', default)
+    assert (d['foo'][:] == default).all()
 
 
 @pytest.mark.parametrize(
