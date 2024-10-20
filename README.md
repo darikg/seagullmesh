@@ -85,12 +85,18 @@ mesh.vertex_data['uv_map'] =  np.random.uniform(-1, 1, (mesh.n_vertices, 2))
 Currently implemented are:
 
 From [PMP Meshing](https://doc.cgal.org/latest/Polygon_mesh_processing/group__PMP__meshing__grp.html):
-  - `mesh.remesh(faces, target_edge_length, n_iterations)`
+  - `mesh.remesh(target_edge_length, ...)`
+    - Isotropic remeshing
+  - `mesh.remesh_adaptive(edge_len_min_max, tolerance, ...)`
+    - Curvature-adaptive isotropic remeshing
   - `mesh.fair(vertices, fairing_continuity)`
   - `mesh.refine(faces, density)`
   - `mesh.smooth_angle_and_area(faces, n_iterations, do_angle_smoothing, do_area_smoothing)`
   - `mesh.smooth_shape(faces, time)`
   - `mesh.tangential_relaxation(verts)`
+
+From [PMP Corrected Curvature Computation](https://doc.cgal.org/latest/Polygon_mesh_processing/group__PMP__corrected__curvatures__grp.html)
+  - `mesh.interpolated_corrected_curvatures(ball_radius, mc_map, gc_map, pc_map)`
 
 From [PMP Corefinement and Boolean Operations](https://doc.cgal.org/latest/Polygon_mesh_processing/group__PMP__corefinement__grp.html)
   - `mesh.corefine(other)`

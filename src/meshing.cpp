@@ -8,18 +8,25 @@
 #include <CGAL/Polygon_mesh_processing/self_intersections.h>
 #include <CGAL/Polygon_mesh_processing/tangential_relaxation.h>
 #include <CGAL/Polygon_mesh_processing/remesh_planar_patches.h>
+#include <CGAL/Polygon_mesh_processing/interpolated_corrected_curvatures.h>
+#include <CGAL/Polygon_mesh_processing/Adaptive_sizing_field.h>
+#include <CGAL/Polygon_mesh_processing/Uniform_sizing_field.h>
+
+typedef std::vector<V>                                      Verts;
+typedef std::vector<F>                                      Faces;
+typedef Mesh3::Property_map<V, Point3>                      VertPoint;
+typedef Mesh3::Property_map<V, double>                      VertDouble;
+typedef Mesh3::Property_map<V, bool>                        VertBool;
+typedef Mesh3::Property_map<E, bool>                        EdgeBool;
+typedef Mesh3::Property_map<F, F>                           FaceMap;
 
 namespace PMP = CGAL::Polygon_mesh_processing;
 
-typedef std::vector<V>                     Verts;
-typedef std::vector<F>                     Faces;
-typedef Mesh3::Property_map<V, Point3>     VertPoint;
-typedef Mesh3::Property_map<V, bool>       VertBool;
-typedef Mesh3::Property_map<E, bool>       EdgeBool;
-typedef Mesh3::Property_map<F, F>          FaceMap;
+typedef PMP::Principal_curvatures_and_directions<Kernel>    PrincipalCurvDir;
+typedef Mesh3::Property_map<V, PrincipalCurvDir>            VertPrincipalCurvDir;
 
 
-struct VertexPointMapWrapper {
+struct TouchedVertPoint {
     // Used for tracking which verts get moved during remesh, etc
     using key_type = V;
     using value_type = Point3;
@@ -29,10 +36,11 @@ struct VertexPointMapWrapper {
     VertPoint& points;
     VertBool& touched;
 
-    VertexPointMapWrapper(VertPoint& p, VertBool& t) : points(p), touched(t) {}
+    TouchedVertPoint();
+    TouchedVertPoint(VertPoint& p, VertBool& t) : points(p), touched(t) {}
 
-    friend Point3& get (const VertexPointMapWrapper& map, V v) { return map.points[v]; }
-    friend void put (const VertexPointMapWrapper& map, V v, const Point3& point) {
+    friend Point3& get (const TouchedVertPoint& map, V v) { return map.points[v]; }
+    friend void put (const TouchedVertPoint& map, V v, const Point3& point) {
         map.points[v] = point;
         map.touched[v] = true;
     }
@@ -40,45 +48,56 @@ struct VertexPointMapWrapper {
 
 
 void init_meshing(py::module &m) {
+
     m.def_submodule("meshing")
-        .def("remesh", [](
-            Mesh3& mesh, 
-            const Faces& faces, 
-            double target_edge_length, 
-            unsigned int n_iter, 
-            bool protect_constraints,
-            VertBool& vertex_is_constrained_map,
-            EdgeBool& edge_is_constrained_map
-        ) {
+        .def("uniform_isotropic_remeshing", [](
+                Mesh3& mesh,
+                const Faces& faces,
+                const double target_edge_length,
+                unsigned int n_iter,
+                bool protect_constraints,
+                VertBool& vertex_is_constrained_map,
+                EdgeBool& edge_is_constrained_map,
+                VertBool& touched
+            ) {
+
+            TouchedVertPoint vertex_point_map(mesh.points(), touched);
+            PMP::Uniform_sizing_field<Mesh3, TouchedVertPoint> sizing_field(target_edge_length, vertex_point_map);
+
             auto params = PMP::parameters::
                 number_of_iterations(n_iter)
+                .vertex_point_map(vertex_point_map)
                 .protect_constraints(protect_constraints)
                 .vertex_is_constrained_map(vertex_is_constrained_map)
                 .edge_is_constrained_map(edge_is_constrained_map)
             ;
-            PMP::isotropic_remeshing(faces, target_edge_length, mesh, params);
+            PMP::isotropic_remeshing(faces, sizing_field, mesh, params);
         })
-        .def("remesh", [](
-            Mesh3& mesh, 
-            const Faces& faces, 
-            double target_edge_length, 
-            unsigned int n_iter,
-            const bool protect_constraints,
-            VertBool& touched,
-            VertBool& vertex_is_constrained_map,
-            EdgeBool& edge_is_constrained_map
-        ) {
+        .def("adaptive_isotropic_remeshing", [](
+                Mesh3& mesh,
+                const Faces& faces,
+                const double tolerance,
+                const double ball_radius,
+                const std::pair<double, double>& edge_len_min_max,
+                unsigned int n_iter,
+                bool protect_constraints,
+                VertBool& vertex_is_constrained_map,
+                EdgeBool& edge_is_constrained_map,
+                VertBool& touched
+            ) {
 
-            auto points = mesh.points();
-            VertexPointMapWrapper point_map = VertexPointMapWrapper(points, touched);
-            auto params = PMP::parameters::number_of_iterations(n_iter)
-                .vertex_point_map(point_map)
+            TouchedVertPoint vertex_point_map(mesh.points(), touched);
+            PMP::Adaptive_sizing_field<Mesh3, TouchedVertPoint> sizing_field(
+                tolerance, edge_len_min_max, faces, mesh, PMP::parameters::vertex_point_map(vertex_point_map));
+
+            auto params = PMP::parameters::
+                number_of_iterations(n_iter)
+                .vertex_point_map(vertex_point_map)
                 .protect_constraints(protect_constraints)
                 .vertex_is_constrained_map(vertex_is_constrained_map)
                 .edge_is_constrained_map(edge_is_constrained_map)
             ;
-
-            PMP::isotropic_remeshing(faces, target_edge_length, mesh, params);
+            PMP::isotropic_remeshing(faces, sizing_field, mesh, params);
         })
         .def("fair", [](Mesh3& mesh, const Verts& verts, const unsigned int fairing_continuity) {
             // A value controling the tangential continuity of the output surface patch.
@@ -153,7 +172,7 @@ void init_meshing(py::module &m) {
         .def("remesh_planar_patches", [](
                 const Mesh3& mesh,
                 EdgeBool& edge_is_constrained_map,
-                // FaceMap& face_patch_map,
+                FaceMap& face_patch_map,
                 float cosine_of_maximum_angle
             ) {
             // TODO parameters.face_patch_map wants propertymap<F, std::size_t>
@@ -168,6 +187,21 @@ void init_meshing(py::module &m) {
             Mesh3 out;
             PMP::remesh_planar_patches(mesh, out, params);
             return out;
+        })
+        .def("interpolated_corrected_curvatures", [](
+            const Mesh3& mesh,
+            VertDouble& mean_curv_map,
+            VertDouble& gauss_curv_map,
+            VertPrincipalCurvDir& princ_curv_dir_map,
+            const double ball_radius
+        ) {
+            auto params = PMP::parameters::
+                vertex_mean_curvature_map(mean_curv_map)
+                .vertex_Gaussian_curvature_map(mean_curv_map)
+                .vertex_principal_curvatures_and_directions_map(princ_curv_dir_map)
+                .ball_radius(ball_radius)
+            ;
+            PMP::interpolated_corrected_curvatures(mesh, params);
         })
     ;
 }

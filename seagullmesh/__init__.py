@@ -186,27 +186,63 @@ class Mesh3:
 
     def remesh(
             self,
-            faces: Faces,
             target_edge_length: float,
-            n_iter: int,
+            n_iter: int = 1,
             protect_constraints=False,
-            vertex_constrained: Optional[Vcm] = '_vcm',
-            edge_constrained: Optional[Ecm] = '_ecm',
-            touched_map: Optional[Vcm] = None,
+            vertex_constrained: str | PropertyMap[Vertex, bool] = '_vcm',
+            edge_constrained: str | PropertyMap[Edge, bool] = '_ecm',
+            touched: str | PropertyMap[Vertex, bool] = '_touched',
+            faces: Optional[Faces] = None,
     ) -> None:
-        """Perform isotropic remeshing on the specified faces.
+        """Perform isotropic remeshing on the specified faces (default: all faces).
 
-        If an optional `touched_map` mapping vertices to bools is specified, vertices that were created or moved during
-        the remeshing are flagged as True.
+        Vertices and edges can be constrained by setting their corresponding values in the
+        vertex_constrained and edge_constrained maps to True. Constrained vertices cannot be
+        modified during remeshing. Constrained edges *can* be split or collapsed, but not flipped,
+        nor its endpoints moved. (If protect_constraints=True, constrained edges cannot be split or
+        collapsed.
+
+        If an optional `touched_map: PropertyMap[Vertex, bool]` mapping vertices to bools is
+        specified, vertices that were created or moved during the remeshing are flagged as True.
         """
-        with vert_edge_constraint_maps(self, vcm=vertex_constrained, ecm=edge_constrained) as (vcm, ecm):
-            if touched_map:
-                touched = self.vertex_data.get_or_create_property(touched_map, default=False)
-                sgm.meshing.remesh(
-                    self._mesh, faces, target_edge_length, n_iter, protect_constraints, touched.pmap, vcm.pmap, ecm.pmap)
-            else:
-                sgm.meshing.remesh(
-                    self._mesh, faces, target_edge_length, n_iter, protect_constraints, vcm.pmap, ecm.pmap)
+        faces = self.faces if faces is None else faces
+        with (
+            self.vertex_data.temporary(vertex_constrained, temp_name='_vcm', default=False) as vcm,
+            self.edge_data.temporary(edge_constrained, temp_name='_ecm', default=False) as ecm,
+            self.vertex_data.temporary(touched, temp_name='_touched', default=False) as touched,
+        ):
+            sgm.meshing.remesh(self._mesh, faces, target_edge_length, n_iter, protect_constraints,
+                               vcm.pmap, ecm.pmap, touched.pmap)
+
+    def remesh_adaptive(
+            self,
+            edge_len_min_max: Tuple[float, float],
+            tolerance: float,
+            n_iter: int = 1,
+            ball_radius: float = -1.0,
+            protect_constraints=False,
+            vertex_constrained: str | PropertyMap[Vertex, bool] = '_vcm',
+            edge_constrained: str | PropertyMap[Edge, bool] = '_ecm',
+            touched: str | PropertyMap[Vertex, bool] = '_touched',
+            faces: Optional[Faces] = None,
+    ) -> None:
+        """Isotropic remeshing with a sizing field adaptive to the local curvature.
+
+        Smaller tolerance values lead to shorter edges.
+
+        Ball radius is the radius over which to calculate the local curvature. If ball_radius == -1,
+        the 1-ring of each vertex is used.
+
+        For other parameter descriptions see `remesh`.
+        """
+        faces = self.faces if faces is None else faces
+        with (
+            self.vertex_data.temporary(vertex_constrained, temp_name='_vcm', default=False) as vcm,
+            self.edge_data.temporary(edge_constrained, temp_name='_ecm', default=False) as ecm,
+            self.vertex_data.temporary(touched, temp_name='_touched', default=False) as touched,
+        ):
+            sgm.meshing.remesh(self._mesh, faces, tolerance, ball_radius, edge_len_min_max,
+                               n_iter, protect_constraints, vcm.pmap, ecm.pmap, touched.pmap)
 
     def fair(self, verts: Vertices, continuity=0) -> None:
         """Fair the specified mesh vertices"""
@@ -430,6 +466,21 @@ class Mesh3:
         skeleton = sgm.skeletonization.extract_mean_curvature_flow_skeleton(self._mesh)
         return Skeleton(mesh=self, skeleton=skeleton)
 
+    def interpolated_corrected_curvatures(
+            self,
+            ball_radius: float = -1,
+            mean_curvature_map: str | PropertyMap[Vertex, float] = 'mean_curvature',
+            gaussian_curvature_map: str | PropertyMap[Vertex, float] = 'gaussian_curvature',
+            principal_curvature_map: str | VertexPrincipalCurvaturesMap = 'principal_curvature',
+    ):
+        mcm = self.vertex_data.get_or_create_property(mean_curvature_map, 0.0)
+        gcm = self.vertex_data.get_or_create_property(gaussian_curvature_map, 0.0)
+        pcm = self.vertex_data.get_or_create_property(
+            principal_curvature_map, sgm.properties.PrincipalCurvaturesAndDirections())
+
+        sgm.meshing.interpolated_corrected_curvatures(
+            self._mesh, mcm.pmap, gcm.pmap, pcm.pmap, ball_radius)
+
 
 class Skeleton:
     """Wrapper around the C++ sgm.skeletonization.Skeleton class
@@ -612,6 +663,7 @@ class ArrayPropertyMap(PropertyMap[Key, Val]):
         locals()[dunder] = _dunder_impl
 
 
+VertexPrincipalCurvaturesMap = PropertyMap[Vertex, sgm.properties.PrincipalCurvaturesAndDirections]
 
 
 class MeshData(Generic[Key]):
