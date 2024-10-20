@@ -6,7 +6,10 @@
 
 #include <CGAL/AABB_face_graph_triangle_primitive.h>
 #include <CGAL/AABB_tree.h>
+
+// TODO AABB_traits is deprecated, use AABB_traits_3
 #include <CGAL/AABB_traits.h>
+//#include <CGAL/AABB_traits_3.h>
 
 typedef std::vector<F>         Faces3;
 typedef std::vector<V>         Verts3;
