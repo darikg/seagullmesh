@@ -58,11 +58,17 @@ class Mesh3:
 
     is_valid = property(lambda self: self._mesh.is_valid)
 
+    @property
+    def mesh(self) -> sgm.mesh.Mesh3:
+        """The C++ mesh object"""
+        return self._mesh
+
     def volume(self) -> float:
         return self._mesh.volume()
 
-    def edge_vertices(self, edges: Edges) -> A:
+    def edge_vertices(self, edges: Edges | None = None) -> A:
         """Returns a len(edges) * 2 array of integer vertex indices"""
+        edges = self.edges if edges is None else edges
         return self._mesh.edge_vertices(edges)
 
     def edge_lengths(self, edges: Edges | None = None) -> A:
