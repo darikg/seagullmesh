@@ -51,10 +51,10 @@ class Mesh3:
     edges = property(lambda self: array(self._mesh.edges))
     halfedges = property(lambda self: array(self._mesh.halfedges))
 
-    n_vertices = property(lambda self: array(self._mesh.n_vertices))
-    n_faces = property(lambda self: array(self._mesh.n_faces))
-    n_edges = property(lambda self: array(self._mesh.n_edges))
-    n_halfedges = property(lambda self: array(self._mesh.n_halfedges))
+    n_vertices = property(lambda self: self._mesh.n_vertices)
+    n_faces = property(lambda self: self._mesh.n_faces)
+    n_edges = property(lambda self: self._mesh.n_edges)
+    n_halfedges = property(lambda self: self._mesh.n_halfedges)
 
     is_valid = property(lambda self: self._mesh.is_valid)
 
