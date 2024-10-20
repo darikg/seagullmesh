@@ -1,6 +1,8 @@
+import pytest
 from pyvista import Cylinder, PolyData
 
 from seagullmesh import Mesh3
+from seagullmesh import _seagullmesh as sgm
 
 
 def pv_border_edges(mesh: PolyData) -> PolyData:
@@ -12,6 +14,7 @@ def pv_border_edges(mesh: PolyData) -> PolyData:
     )
 
 
+@pytest.mark.skipif(not hasattr(sgm, 'border'), reason='border submodule not installed')
 def test_label_border_vertices():
     pv_cyl = Cylinder(capping=False, resolution=10).triangulate()
     sm_cyl = Mesh3.from_pyvista(pv_cyl)

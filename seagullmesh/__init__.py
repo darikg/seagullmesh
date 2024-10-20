@@ -40,7 +40,7 @@ class Mesh3:
         self.vertex_data = MeshData(mesh, sgm.properties.add_vertex_property, 'vertices', 'Vert')
         self.face_data = MeshData(mesh, sgm.properties.add_face_property, 'faces', 'Face')
         self.edge_data = MeshData(mesh, sgm.properties.add_edge_property, 'edges', 'Edge')
-        self.halfedge_data = MeshData(mesh, sgm.properties.add_halfedge_property, 'halfedges')
+        self.halfedge_data = MeshData(mesh, sgm.properties.add_halfedge_property, 'halfedges', 'Halfedge')
 
         # Mesh3 automatically constructs a vertex point 3 property, make it available
         # from the python side

@@ -1,6 +1,8 @@
 #include "seagullmesh.hpp"
 #include "util.hpp"
 
+#include <boost/range/algorithm.hpp>
+
 #include <CGAL/Polygon_mesh_processing/polygon_soup_to_polygon_mesh.h>
 #include <CGAL/Polygon_mesh_processing/polygon_mesh_to_polygon_soup.h>
 #include <CGAL/Polygon_mesh_processing/compute_normal.h>
@@ -64,7 +66,12 @@ void init_mesh(py::module &m) {
     py::class_<V>(sub, "Vertex");
     py::class_<F>(sub, "Face");
     py::class_<E>(sub, "Edge");
-    py::class_<H>(sub, "Halfedge");
+    py::class_<H>(sub, "Halfedge")
+        .def(py::init<>())
+        .def(py::init<H::size_type>())
+    ;
+
+    py::class_<std::vector<H>>(sub, "Halfedges");
 
     py::class_<Mesh3>(sub, "Mesh3")
         .def(py::init<>())
@@ -100,15 +107,14 @@ void init_mesh(py::module &m) {
             }
             return edges;
         })
+        .def_property_readonly("first_halfedge", [](const Mesh3& mesh) {
+            return H {0};
+        })
         .def_property_readonly("halfedges", [](const Mesh3& mesh) {
             std::vector<H> halfedges;
-            halfedges.reserve(mesh.number_of_halfedges());
-            for (H h : mesh.halfedges()) {
-                halfedges.emplace_back(h);
-            }
+            halfedges.emplace_back(H(0));
             return halfedges;
         })
-
         .def("edge_vertices", [](const Mesh3& mesh, const std::vector<E>& edges) {
             std::map<V, size_t> vert_idxs;
             size_t vi = 0;

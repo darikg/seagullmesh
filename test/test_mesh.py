@@ -143,6 +143,7 @@ def corefine_meshes():
     return m1, m2
 
 
+@pytest.mark.skipif(not hasattr(sgm, 'corefine'), reason='corefine submodule not installed')
 def test_corefine():
     m1, m2 = corefine_meshes()
     nv1_orig, nv2_orig = m1.n_vertices, m2.n_vertices
@@ -152,6 +153,7 @@ def test_corefine():
     assert nv1 > nv1_orig and nv2 > nv2_orig
 
 
+@pytest.mark.skipif(not hasattr(sgm, 'corefine'), reason='corefine submodule not installed')
 @pytest.mark.parametrize('op', ['union', 'intersection', 'difference'])
 @pytest.mark.parametrize('inplace', [False, True])
 def test_boolean_ops(op, inplace):
