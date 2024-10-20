@@ -23,6 +23,10 @@ def tetrahedron(scale=1.0, rot_z=0.0):
     return verts, faces
 
 
+def tetrahedron_mesh() -> Mesh3:
+    return Mesh3.from_polygon_soup(*tetrahedron())
+
+
 def test_from_polygon_soup():
     verts, faces = tetrahedron()
     mesh = Mesh3.from_polygon_soup(verts, faces)
@@ -52,18 +56,41 @@ def test_pyvista_roundtrip():
 
 
 @pytest.mark.parametrize(
-    ['cls', 'default'],
+    ['data_name', 'cls', 'default'],
     [
-        (props.VertBoolPropertyMap, False),
-        (props.VertIntPropertyMap, 0),
-        (props.VertDoublePropertyMap, 0.0),
-        (props.VertPoint2PropertyMap, Point2(0, 0)),
+        ('vertex_data', props.VertIntPropertyMap, 0),
+        ('vertex_data', props.VertUIntPropertyMap, 0),
+        ('face_data', props.FaceIntPropertyMap, 0),
+        ('face_data', props.FaceUIntPropertyMap, 0),
+
     ]
 )
-def test_property_map_type_casting(cls, default):
+def test_explicit_property_map_construction(data_name, cls, default):
+    mesh = tetrahedron_mesh()
+    d = getattr(mesh, data_name)
+    d['foo'] = cls(mesh.mesh, 'foo', default)
+    assert (d['foo'][:] == default).all()
+
+
+@pytest.mark.parametrize(
+    ['data_name', 'cls', 'default', 'signed'],
+    [
+        ('vertex_data', props.VertBoolPropertyMap, False, None),
+        ('vertex_data', props.VertIntPropertyMap, 0, True),
+        ('vertex_data', props.VertUIntPropertyMap, 0, False),
+        ('vertex_data', props.VertDoublePropertyMap, 0.0, None),
+        ('vertex_data', props.VertPoint2PropertyMap, Point2(0, 0), None),
+        ('face_data', props.FaceBoolPropertyMap, False, None),
+        ('face_data', props.FaceIntPropertyMap, 0, True),
+        ('face_data', props.FaceUIntPropertyMap, 0, False),
+        ('face_data', props.FaceDoublePropertyMap, 0.0, None),
+        ('face_data', props.FacePoint2PropertyMap, Point2(0, 0), None),
+    ]
+)
+def test_add_property_map(data_name, cls, default, signed):
     mesh = Mesh3.from_polygon_soup(*tetrahedron())
-    d = mesh.vertex_data
-    pmap = d.add_property('foo', default=default)
+    data = getattr(mesh, data_name)
+    pmap = data.add_property('foo', default=default, signed=signed)
     assert isinstance(pmap.pmap, cls)
 
 
@@ -71,26 +98,26 @@ def test_property_map_type_casting(cls, default):
 @pytest.mark.parametrize('val_type', [int, bool, float])
 def test_scalar_properties(key_type, val_type):
     mesh = Mesh3.from_polygon_soup(*tetrahedron())
-    d: MeshData = getattr(mesh, key_type + '_data')
+    data: MeshData = getattr(mesh, key_type + '_data')
 
-    d['foo'] = full(d.n_mesh_keys, val_type(0))
+    data['foo'] = full(data.n_mesh_keys, val_type(0))
 
-    keys = d.mesh_keys
+    keys = data.mesh_keys
     key = keys[0]
-    d['foo'][key] = val_type(1)
+    data['foo'][key] = val_type(1)
 
-    assert 'foo' in d
-    assert 'bar' not in d
+    assert 'foo' in data
+    assert 'bar' not in data
 
-    val = d['foo'][key]
+    val = data['foo'][key]
     assert val == val_type(1)
 
-    d['foo'][keys[:2]] = [val_type(1), val_type(1)]
-    assert d['foo'][keys[0]] == val_type(1) and d['foo'][keys[1]] == val_type(1)
+    data['foo'][keys[:2]] = [val_type(1), val_type(1)]
+    assert data['foo'][keys[0]] == val_type(1) and data['foo'][keys[1]] == val_type(1)
 
-    d.remove_property('foo')
-    assert 'foo' not in d.mesh_keys
-    assert 'foo' not in d
+    data.remove_property('foo')
+    assert 'foo' not in data.mesh_keys
+    assert 'foo' not in data
 
 
 @pytest.mark.parametrize('key_type', ['vertex', 'face', 'edge', 'halfedge'])

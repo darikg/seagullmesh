@@ -4,10 +4,11 @@ from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from functools import cached_property
 from pathlib import Path
-from typing import Any, Optional, TYPE_CHECKING, Union, Sequence, Protocol, TypeVar, overload, Tuple, Generic, List, \
-    Iterator, Type, Dict, Literal
+from typing import Any, Optional, TYPE_CHECKING, Union, Sequence, TypeVar, overload, Tuple, \
+    Generic, List, Iterator, Type, Dict, Literal
 
-from numpy import ndarray, zeros_like, array, sqrt, concatenate, ones, full
+import numpy as np
+from numpy import ndarray, zeros_like, array, sqrt, concatenate, full
 from seagullmesh._seagullmesh.mesh import (  # noqa
     Mesh3 as _Mesh3,
     polygon_soup_to_mesh3,
@@ -24,7 +25,6 @@ Faces = Sequence[Face]
 Edges = Sequence[Edge]
 Halfedges = Sequence[Halfedge]
 
-
 if TYPE_CHECKING:
     try:
         import pyvista as pv  # noqa
@@ -37,13 +37,14 @@ A = ndarray
 class Mesh3:
     def __init__(self, mesh: _Mesh3):
         self._mesh = mesh
-        self.vertex_data = MeshData(mesh, sgm.properties.add_vertex_property, 'vertices')
-        self.vertex_data.assign_property_map('points', ArrayPropertyMap, mesh.points)
-        self.face_data = MeshData(mesh, sgm.properties.add_face_property, 'faces')
-        self.edge_data = MeshData(mesh, sgm.properties.add_edge_property, 'edges')
+        self.vertex_data = MeshData(mesh, sgm.properties.add_vertex_property, 'vertices', 'Vert')
+        self.face_data = MeshData(mesh, sgm.properties.add_face_property, 'faces', 'Face')
+        self.edge_data = MeshData(mesh, sgm.properties.add_edge_property, 'edges', 'Edge')
         self.halfedge_data = MeshData(mesh, sgm.properties.add_halfedge_property, 'halfedges')
 
-    mesh = property(lambda self: self._mesh)
+        # Mesh3 automatically constructs a vertex point 3 property, make it available
+        # from the python side
+        self.vertex_data.assign_property_map('points', mesh.points)
 
     vertices = property(lambda self: array(self._mesh.vertices))
     faces = property(lambda self: array(self._mesh.faces))
@@ -163,8 +164,8 @@ class Mesh3:
     def union_tracked(
             self,
             other: Mesh3,
-            vert_idx: Union[str, PropertyMap[Vertex, int]],
-            edge_constrained: Ecm,
+            vert_idx: str | PropertyMap[Vertex, int],
+            edge_constrained: str | PropertyMap[Edge, bool],
     ) -> None:
         tracker, ecm1, ecm2 = _get_corefined_properties(self, other, vert_idx, edge_constrained)
         sgm.corefine.union(self._mesh, other._mesh, ecm1.pmap, ecm2.pmap, tracker)
@@ -213,16 +214,18 @@ class Mesh3:
             use_angle_smoothing=True,
             use_safety_constraints=False,
             do_project=True,
-            vertex_constrained: Vcm = '_vcm',
-            edge_constrained: Ecm = '_ecm',
+            vertex_constrained: str | PropertyMap[Vertex, bool] = '_vcm',
+            edge_constrained: str | PropertyMap[Edge, bool] = '_ecm',
     ) -> None:
         """Smooths a triangulated region of a polygon mesh
 
         This function attempts to make the triangle angle and area distributions as uniform as possible by moving
         (non-constrained) vertices.
         """
-
-        with vert_edge_constraint_maps(self, vcm=vertex_constrained, ecm=edge_constrained) as (vcm, ecm):
+        with (
+            self.vertex_data.temporary(vertex_constrained, temp_name='_vcm', default=False) as vcm,
+            self.edge_data.temporary(edge_constrained, temp_name='_ecm', default=False) as ecm,
+        ):
             sgm.meshing.smooth_angle_and_area(
                 self._mesh, faces, n_iter, use_area_smoothing, use_angle_smoothing,
                 use_safety_constraints, do_project, vcm.pmap, ecm.pmap)
@@ -232,10 +235,13 @@ class Mesh3:
             verts: Vertices,
             n_iter: int,
             relax_constraints=False,
-            vertex_constrained: Vcm = '_vcm',
-            edge_constrained: Ecm = '_ecm',
+            vertex_constrained: str | PropertyMap[Vertex, bool] = '_vcm',
+            edge_constrained: str | PropertyMap[Edge, bool] = '_ecm',
     ) -> None:
-        with vert_edge_constraint_maps(self, vcm=vertex_constrained, ecm=edge_constrained) as (vcm, ecm):
+        with (
+            self.vertex_data.temporary(vertex_constrained, temp_name='_vcm', default=False) as vcm,
+            self.edge_data.temporary(edge_constrained, temp_name='_ecm', default=False) as ecm,
+        ):
             sgm.meshing.tangential_relaxation(
                 self._mesh, verts, n_iter, relax_constraints, vcm.pmap, ecm.pmap)
 
@@ -244,14 +250,14 @@ class Mesh3:
             faces: Faces,
             time: float,
             n_iter: int,
-            vertex_constrained: Vcm = '_vcm',
+            vertex_constrained: str | PropertyMap[Vertex, bool] = '_vcm',
     ) -> None:
         """Smooth the mesh shape by mean curvature flow
 
         A larger time step results in faster convergence but details may be distorted to a larger extent compared to
          more iterations with a smaller step. Typical values scale in the interval (1e-6, 1]
         """
-        with vert_edge_constraint_maps(self, vcm=vertex_constrained, ecm=None) as (vcm, _):
+        with self.vertex_data.temporary(vertex_constrained, temp_name='_vcm', default=False) as vcm:
             sgm.meshing.smooth_shape(self._mesh, faces, time, n_iter, vcm.pmap)
 
     def does_self_intersect(self) -> bool:
@@ -325,7 +331,7 @@ class Mesh3:
     def estimate_geodesic_distances(
             self,
             src: Union[Vertex, Vertices],
-            distance_prop: Union[str, PropertyMap[Vertex, float]],
+            distance_prop: str | PropertyMap[Vertex, float],
     ):
         """Estimates the geodesic distance from the source vertex/vertices to all vertices in the mesh
 
@@ -334,26 +340,21 @@ class Mesh3:
         distances = self.vertex_data.get_or_create_property(distance_prop, default=0.0)
         self._mesh.estimate_geodesic_distances(distances.pmap, src)
 
-    def label_border_vertices(self, is_border: Union[str, PropertyMap[Vertex, bool]]):
+    def label_border_vertices(self, is_border: str | PropertyMap[Vertex, bool]):
         is_border = self.vertex_data.get_or_create_property(is_border, default=False)
         sgm.border.label_border_vertices(self._mesh, is_border.pmap)
 
     def remesh_planar_patches(
             self,
-            edge_constrained: Ecm = '_ecm',
+            edge_constrained: str | PropertyMap[Edge, bool] = '_ecm',
             # face_patch_map: FaceMap = '_face_map',
             cosine_of_maximum_angle: float = 1.0,
     ) -> Mesh3:
-        ecm = self.edge_data.get_or_create_property(edge_constrained, default=False)
-        # fpm = self.face_data.get_or_create_property(face_patch_map, default=-1)
-        # TODO see comments in c++ remesh_planar_patches regarding face_patch_map
-        out = sgm.meshing.remesh_planar_patches(
-            self._mesh, ecm.pmap, cosine_of_maximum_angle)
-
-        if is_str_pmap(edge_constrained, '_ecm'):
-            self.edge_data.remove_property('_ecm')
-        # if is_str_pmap(face_patch_map, '_face_map'):
-        #     self.face_data.remove_property('_face_map')
+        with self.edge_data.temporary(edge_constrained, temp_name='_ecm', default=False) as ecm:
+            # fpm = self.face_data.get_or_create_property(face_patch_map, default=-1)
+            # TODO see comments in c++ remesh_planar_patches regarding face_patch_map
+            out = sgm.meshing.remesh_planar_patches(
+                self._mesh, ecm.pmap, cosine_of_maximum_angle)
 
         return Mesh3(out)
 
@@ -361,7 +362,7 @@ class Mesh3:
             self,
             stop_policy_mode: Literal["face", "edge", "edge_length"],
             stop_policy_thresh: float | int,
-            edge_constrained: Ecm = '_ecm',
+            edge_constrained: str | PropertyMap[Edge, bool] = '_ecm',
     ) -> int:
         """Mesh simplification by edge collapse
 
@@ -396,10 +397,9 @@ class Mesh3:
         else:
             raise ValueError(f"Unsupported stop policy mode {stop_policy_mode}")
 
-        ecm = self.edge_data.get_or_create_property(edge_constrained, default=False)
-        out = fn(self._mesh, stop_policy_thresh, ecm.pmap)
-        if is_str_pmap(edge_constrained, '_ecm'):
-            self.edge_data.remove_property('_ecm')
+        with self.edge_data.temporary(edge_constrained, temp_name='_ecm', default=False) as ecm:
+            out = fn(self._mesh, stop_policy_thresh, ecm.pmap)
+
         return out
 
     def skeletonize(self):
@@ -458,12 +458,12 @@ def _get_corefined_properties(
         edge_constrained: Optional[str] = None,
         face_idx: Optional[str] = None,
 ):
-    vert_idx1 = mesh1.vertex_data.get_or_create_property(vert_idx, default=-1)
-    vert_idx2 = mesh2.vertex_data.get_or_create_property(vert_idx, default=-1)
+    vert_idx1 = mesh1.vertex_data.get_or_create_property(vert_idx, default=-1, signed=True)
+    vert_idx2 = mesh2.vertex_data.get_or_create_property(vert_idx, default=-1, signed=True)
 
     if face_idx:
-        face_idx1 = mesh1.face_data.get_or_create_property(face_idx, default=-1)
-        face_idx2 = mesh2.face_data.get_or_create_property(face_idx, default=-1)
+        face_idx1 = mesh1.face_data.get_or_create_property(face_idx, default=-1, signed=True)
+        face_idx2 = mesh2.face_data.get_or_create_property(face_idx, default=-1, signed=True)
         tracker = sgm.corefine.CorefinementVertexFaceTracker(
             mesh1.mesh, mesh2.mesh, vert_idx1.pmap, vert_idx2.pmap, face_idx1.pmap, face_idx2.pmap)
     else:
@@ -519,9 +519,6 @@ class PropertyMap(Generic[Key, Val], ABC):
 
 
 class ScalarPropertyMap(PropertyMap[Key, Val]):
-    # def __init__(self, pmap, data: MeshData[Key]):
-    #     super().__init__(pmap=pmap, data=data)
-
     @overload
     def __getitem__(self, key: Union[int, Key]) -> Val: ...
 
@@ -553,9 +550,6 @@ class ScalarPropertyMap(PropertyMap[Key, Val]):
 
 
 class ArrayPropertyMap(PropertyMap[Key, Val]):
-    # def __init__(self, pmap, data: MeshData[Key]):
-    #     super().__init__(pmap=pmap, data=data)
-
     def __getitem__(self, key) -> A:
         if isinstance(key, slice):
             return self.pmap.get_array(self._data.mesh_keys[key])
@@ -609,11 +603,12 @@ UvMap = PropertyMap[Vertex, Point2]
 
 
 class MeshData(Generic[Key]):
-    def __init__(self, mesh: Mesh3, add_fn, key_name: str):
+    def __init__(self, mesh: sgm.mesh.Mesh3, add_fn, key_name: str, prefix: str):
         self._data: Dict[str, PropertyMap[Key]] = {}
-        self._mesh = mesh
-        self._add_fn = add_fn
-        self._key_name = key_name
+        self._mesh = mesh  # the c++ mesh
+        self._add_fn = add_fn  # e.g. sgm.properties.add_vertex_property, etc
+        self._key_name = key_name  # e.g. 'vertices', 'faces', etc
+        self._cpp_cls_prefix = prefix  # e.g. 'Vert', 'Face', etc
 
     @property
     def mesh_keys(self) -> List[Key]:
@@ -623,31 +618,83 @@ class MeshData(Generic[Key]):
     def n_mesh_keys(self) -> int:
         return getattr(self._mesh, f'n_{self._key_name}')
 
-    def add_property(self, key: str, default: Val) -> PropertyMap[Key, Val]:
-        _pmap = self._add_fn(self._mesh, key, default)
-        if isinstance(default, (Point2, Point3, Vector2, Vector3)):
-            pmap = ArrayPropertyMap(_pmap, self)
-        else:
-            pmap = ScalarPropertyMap(_pmap, self)
+    @contextmanager
+    def temporary(
+            self,
+            pmap: str | PropertyMap[Key, Val] | None,
+            temp_name: str,
+            default: Val,
+            signed: bool | None = None,
+    ) -> Iterator[PropertyMap[Key, Val]]:
+        """Construct a placeholder property map
 
-        self._data[key] = pmap
-        return pmap
+        If pmap: str == temp_name, the map is removed after use. If pmap is another str or a
+        pre-existing property map, it's not removed.
+        """
+        remove_after = isinstance(pmap, str) and pmap == temp_name
+        pmap = self.get_or_create_property(pmap, default=default, signed=signed)
+        yield pmap
+        if remove_after:
+            self.remove_property(temp_name)
+
+    def add_property(
+            self,
+            key: str,
+            default: Val,
+            signed: Optional[bool] = None,
+    ) -> PropertyMap[Key, Val]:
+        """Add a property map
+
+        The type of the map's value is inferred from the default value. E.g.
+        `mesh.vertex_data.add_property('foo', 0.0)` constructs a VertDoublePropertyMap named 'foo'
+        storing doubles on vertices and `mesh.face_data.add_property('bar', Point2(0, 0))` stores
+        2d points on mesh faces.
+
+        There is an ambiguity when constructing int-valued property maps where some CGAL routines
+        require either signed or unsigned ints, so the optional `signed` parameter can make it
+        explicit whether signed or unsigned ints are required.
+        """
+        if signed is None:
+            # Infer C++ property map type from the default
+            pmap = self._add_fn(self._mesh, key, default)
+        elif isinstance(default, int):
+            # Specify e.g. "VertIntPropertyMap", "VertUIntPropertyMap"
+            pmap_cls = f"{self._cpp_cls_prefix}{'' if signed else 'U'}IntPropertyMap"
+            pmap = getattr(sgm.properties, pmap_cls)(self._mesh, key, default)
+        else:
+            raise TypeError(
+                f"Can only specify signed for int values, got default={type(default)}({default})")
+
+        return self.assign_property_map(name=key, pmap=pmap)  # The wrapped map
 
     def remove_property(self, key: str):
         pmap = self._data.pop(key)
         sgm.properties.remove_property_map(self._mesh, pmap.pmap)
 
-    def assign_property_map(self, name: str, cls: Type[PropertyMap], pmap):
-        self._data[name] = cls(pmap=pmap, data=self)
+    def assign_property_map(
+            self,
+            name: str,
+            pmap,  # The C++ property map
+            wrapper_cls: Type[PropertyMap] | None = None
+    ) -> PropertyMap:
+        if wrapper_cls is None:
+            wrapper_cls = ScalarPropertyMap if pmap._is_scalar else ArrayPropertyMap
+        wrapped_pmap = self._data[name] = wrapper_cls(pmap=pmap, data=self)
+        return wrapped_pmap
 
-    def get_or_create_property(self, key: Union[str, PropertyMap[Key, Val]], default: Val) -> PropertyMap[Key, Val]:
+    def get_or_create_property(
+            self,
+            key: Union[str, PropertyMap[Key, Val]],
+            default: Val,
+            signed: bool | None = None,
+    ) -> PropertyMap[Key, Val]:
         if isinstance(key, PropertyMap):
             return key
 
         if key in self._data:
             return self._data[key]
         else:
-            return self.add_property(key, default)
+            return self.add_property(key, default, signed=signed)
 
     def __getitem__(self, item: str) -> PropertyMap[Key, Any]:
         return self._data[item]
@@ -655,7 +702,13 @@ class MeshData(Generic[Key]):
     def __delitem__(self, item: str):
         self.remove_property(item)
 
-    def __setitem__(self, key: str, value: ndarray):
+    def __setitem__(self, key: str, value: Any):
+        if hasattr(value, "_is_sgm_property_map"):
+            # Assigning the bare C++ property map
+            self.assign_property_map(name=key, pmap=value)
+            return
+
+        # Implicit construction of a new property map with initial value(s) `value`
         default = zeros_like(value, shape=()).item()
         pmap = self.get_or_create_property(key, default)
         pmap[self.mesh_keys] = value
@@ -671,30 +724,3 @@ class MeshData(Generic[Key]):
 
     def __iter__(self) -> Iterator[str]:
         yield from self._data.__iter__()
-
-
-Vcm = Union[PropertyMap[Vertex, bool], str]
-Ecm = Union[PropertyMap[Edge, bool], str]
-FaceMap = Union[PropertyMap[Face, Face], str]
-
-
-def is_str_pmap(pmap: Union[PropertyMap, str], name: str):
-    return isinstance(pmap, str) and pmap == name
-
-
-@contextmanager
-def vert_edge_constraint_maps(mesh: Mesh3, vcm: Vcm, ecm: Optional[Ecm]):
-    # Easier to add and remove placeholder propertymaps instead of c++ overloading
-    _vcm = mesh.vertex_data.get_or_create_property(vcm, default=False)
-    if ecm is not None:
-        _ecm = mesh.edge_data.get_or_create_property(ecm, default=False)
-    else:
-        _ecm = None
-
-    try:
-        yield _vcm, _ecm
-    finally:
-        if is_str_pmap(vcm, '_vcm'):
-            mesh.vertex_data.remove_property('_vcm')
-        if is_str_pmap(ecm, '_ecm'):
-            mesh.edge_data.remove_property('_ecm')

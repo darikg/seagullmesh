@@ -13,7 +13,7 @@ auto add_property_map(Mesh3& mesh, std::string name, const Val default_val) {
 
 
 template <typename Key, typename Val>
-auto define_property_map(py::module &m, std::string name) {
+auto define_property_map(py::module &m, std::string name, bool is_scalar = true) {
     // https://stackoverflow.com/a/47749076/7519203
     using PMap = typename Mesh3::Property_map<Key, Val>;
 
@@ -21,7 +21,14 @@ auto define_property_map(py::module &m, std::string name) {
         mesh.remove_property_map(pmap);
     });
 
-    return py::class_<PMap>(m, name.c_str(), py::buffer_protocol(), py::dynamic_attr())
+    return py::class_<PMap>(m, name.c_str(), py::buffer_protocol())
+        .def(
+            py::init([](Mesh3& mesh, std::string name, const Val default_val) {
+                return add_property_map<Key, Val>(mesh, name, default_val);
+            })
+        )
+        .def_property_readonly_static("_is_sgm_property_map", [](py::object /* self */) { return true; })
+        .def_property_readonly_static("_is_scalar", [is_scalar](py::object /* self */) { return is_scalar; })
         .def("__getitem__", [](const PMap& pmap, const Key& key) {
             Val val = pmap[key];
             return val;
@@ -62,7 +69,7 @@ template <typename Key, typename Val>
 void define_array_3_property_map(py::module &m, std::string name) {
     using PMap = typename Mesh3::Property_map<Key, Val>;
 
-    define_property_map<Key, Val>(m, name)
+    define_property_map<Key, Val>(m, name, false)
         .def("get_array", [](const PMap& pmap, const std::vector<Key>& keys) {
             const size_t nk = keys.size();
             py::array_t<double, py::array::c_style> vals({nk, size_t(3)});
@@ -96,7 +103,7 @@ template <typename Key, typename Val>
 void define_array_2_property_map(py::module &m, std::string name) {
     using PMap = typename Mesh3::Property_map<Key, Val>;
 
-    define_property_map<Key, Val>(m, name)
+    define_property_map<Key, Val>(m, name, false)
         .def("get_array", [](const PMap& pmap, const std::vector<Key>& keys) {
             const size_t nk = keys.size();
             py::array_t<double, py::array::c_style> vals({nk, size_t(2)});
