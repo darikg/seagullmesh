@@ -28,3 +28,6 @@ typedef Mesh3::Vertex_index             V;
 typedef Mesh3::Face_index               F;
 typedef Mesh3::Halfedge_index           H;
 typedef Mesh3::Edge_index               E;
+
+
+PYBIND11_MAKE_OPAQUE(std::vector<H>)

@@ -114,7 +114,7 @@ void init_mesh(py::module &m) {
             std::vector<H> halfedges;
             halfedges.emplace_back(H(0));
             return halfedges;
-        })
+        }, py::return_value_policy::reference)
         .def("edge_vertices", [](const Mesh3& mesh, const std::vector<E>& edges) {
             std::map<V, size_t> vert_idxs;
             size_t vi = 0;
