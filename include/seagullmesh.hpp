@@ -30,4 +30,9 @@ typedef Mesh3::Halfedge_index           H;
 typedef Mesh3::Edge_index               E;
 
 
+// Make vectors indices opaque so they can be copied back and forth
+// between python and c++ without big copies
+PYBIND11_MAKE_OPAQUE(std::vector<V>)
+PYBIND11_MAKE_OPAQUE(std::vector<F>)
 PYBIND11_MAKE_OPAQUE(std::vector<H>)
+PYBIND11_MAKE_OPAQUE(std::vector<E>)

@@ -5,7 +5,7 @@ from contextlib import contextmanager
 from functools import cached_property
 from pathlib import Path
 from typing import Any, Optional, TYPE_CHECKING, Union, Sequence, TypeVar, overload, Tuple, \
-    Generic, List, Iterator, Type, Dict, Literal
+    Generic, List, Iterator, Type, Dict, Literal, ItemsView, KeysView, ValuesView, Mapping
 
 import numpy as np
 from numpy import ndarray, zeros_like, array, sqrt, concatenate, full
@@ -46,10 +46,10 @@ class Mesh3:
         # from the python side
         self.vertex_data.assign_property_map('points', mesh.points)
 
-    vertices = property(lambda self: array(self._mesh.vertices))
-    faces = property(lambda self: array(self._mesh.faces))
-    edges = property(lambda self: array(self._mesh.edges))
-    halfedges = property(lambda self: array(self._mesh.halfedges))
+    vertices = property(lambda self: self._mesh.vertices)
+    faces = property(lambda self: self._mesh.faces)
+    edges = property(lambda self: self._mesh.edges)
+    halfedges = property(lambda self: self._mesh.halfedges)
 
     n_vertices = property(lambda self: self._mesh.n_vertices)
     n_faces = property(lambda self: self._mesh.n_faces)
@@ -666,13 +666,16 @@ class ArrayPropertyMap(PropertyMap[Key, Val]):
 VertexPrincipalCurvaturesMap = PropertyMap[Vertex, sgm.properties.PrincipalCurvaturesAndDirections]
 
 
-class MeshData(Generic[Key]):
+class MeshData(Mapping[str, PropertyMap[Key, Any]], Generic[Key]):
     def __init__(self, mesh: sgm.mesh.Mesh3, add_fn, key_name: str, prefix: str):
         self._data: Dict[str, PropertyMap[Key]] = {}
         self._mesh = mesh  # the c++ mesh
         self._add_fn = add_fn  # e.g. sgm.properties.add_vertex_property, etc
         self._key_name = key_name  # e.g. 'vertices', 'faces', etc
         self._cpp_cls_prefix = prefix  # e.g. 'Vert', 'Face', etc
+
+    def __len__(self) -> int:
+        return len(self._data)
 
     @property
     def mesh_keys(self) -> List[Key]:
@@ -777,14 +780,14 @@ class MeshData(Generic[Key]):
         pmap = self.get_or_create_property(key, default)
         pmap[self.mesh_keys] = value
 
-    def items(self) -> Iterator[Tuple[str, PropertyMap[Key, Any]]]:
-        yield from self._data.items()
+    def items(self) -> ItemsView[str, PropertyMap[Key, Any]]:
+        return self._data.items()
 
-    def values(self) -> Iterator[PropertyMap[Key, Any]]:
-        yield from self._data.values()
+    def values(self) -> ValuesView[PropertyMap[Key, Any]]:
+        return self._data.values()
 
-    def keys(self) -> Iterator[str]:
-        yield from self._data.keys()
+    def keys(self) -> KeysView[str, PropertyMap[Key, Any]]:
+        return self._data.keys()
 
     def __iter__(self) -> Iterator[str]:
-        yield from self._data.__iter__()
+        return self._data.__iter__()

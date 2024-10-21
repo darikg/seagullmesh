@@ -116,7 +116,7 @@ def test_scalar_properties(key_type, val_type):
     assert data['foo'][keys[0]] == val_type(1) and data['foo'][keys[1]] == val_type(1)
 
     data.remove_property('foo')
-    assert 'foo' not in data.mesh_keys
+    assert 'foo' not in data.keys()
     assert 'foo' not in data
 
 

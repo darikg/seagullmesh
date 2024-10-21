@@ -2,6 +2,7 @@
 #include "util.hpp"
 
 #include <boost/range/algorithm.hpp>
+#include <pybind11/stl_bind.h>
 
 #include <CGAL/Polygon_mesh_processing/polygon_soup_to_polygon_mesh.h>
 #include <CGAL/Polygon_mesh_processing/polygon_mesh_to_polygon_soup.h>
@@ -66,12 +67,12 @@ void init_mesh(py::module &m) {
     py::class_<V>(sub, "Vertex");
     py::class_<F>(sub, "Face");
     py::class_<E>(sub, "Edge");
-    py::class_<H>(sub, "Halfedge")
-        .def(py::init<>())
-        .def(py::init<H::size_type>())
-    ;
+    py::class_<H>(sub, "Halfedge");
 
-    py::class_<std::vector<H>>(sub, "Halfedges");
+    py::bind_vector<std::vector<V>>(sub, "Vertices");
+    py::bind_vector<std::vector<F>>(sub, "Faces");
+    py::bind_vector<std::vector<E>>(sub, "Edges");
+    py::bind_vector<std::vector<H>>(sub, "Halfedges");
 
     py::class_<Mesh3>(sub, "Mesh3")
         .def(py::init<>())
@@ -86,35 +87,28 @@ void init_mesh(py::module &m) {
         .def_property_readonly("vertices", [](const Mesh3& mesh) {
             std::vector<V> verts;
             verts.reserve(mesh.number_of_vertices());
-            for (V v : mesh.vertices()) {
-                verts.emplace_back(v);
-            }
+            boost::range::copy(mesh.vertices(), std::back_inserter(verts));
             return verts;
         })
         .def_property_readonly("faces", [](const Mesh3& mesh) {
             std::vector<F> faces;
             faces.reserve(mesh.number_of_faces());
-            for (F f : mesh.faces()) {
-                faces.emplace_back(f);
-            }
+            boost::range::copy(mesh.faces(), std::back_inserter(faces));
             return faces;
         })
         .def_property_readonly("edges", [](const Mesh3& mesh) {
             std::vector<E> edges;
             edges.reserve(mesh.number_of_edges());
-            for (E e : mesh.edges()) {
-                edges.emplace_back(e);
-            }
+            boost::range::copy(mesh.edges(), std::back_inserter(edges));
             return edges;
-        })
-        .def_property_readonly("first_halfedge", [](const Mesh3& mesh) {
-            return H {0};
         })
         .def_property_readonly("halfedges", [](const Mesh3& mesh) {
             std::vector<H> halfedges;
-            halfedges.emplace_back(H(0));
+            halfedges.reserve(mesh.number_of_halfedges());
+            boost::range::copy(mesh.halfedges(), std::back_inserter(halfedges));
             return halfedges;
-        }, py::return_value_policy::reference)
+            // Getting a Halfedge is neither movable or copyable error, I think take_ownership fixes this?
+        }, py::return_value_policy::take_ownership)
         .def("edge_vertices", [](const Mesh3& mesh, const std::vector<E>& edges) {
             std::map<V, size_t> vert_idxs;
             size_t vi = 0;
