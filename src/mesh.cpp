@@ -29,8 +29,30 @@ auto define_simple_type_2(py::module &m, std::string name) {
     ;
 }
 
+template<typename Key>
+struct Keys {
+    typedef typename Key::size_type size_type;
+    typedef py::array_t<size_type> array_type;  // array<std::uint32_t>
+    array_type& indices;
+
+    Keys(array_type& indices) : indices(indices) {}
+
+    size_type add_up(const Keys& keys) {
+        size_type sum = 0;
+        auto r = indices.unchecked<1>();
+        for (py::ssize_t i = 0; i < r.shape(0); i++)
+            sum += r(i);
+        return sum;
+    }
+};
+
 void init_mesh(py::module &m) {
     py::module sub = m.def_submodule("mesh");
+
+    py::class_<Keys<V>>(sub, "MyVertices")
+        .def(py::init<Keys<V>::array_type&>())
+        .def("add_up", &Keys<V>::add_up)
+    ;
 
     define_simple_type_2<Point2>(sub, "Point2");
     define_simple_type_3<Point3>(sub, "Point3");
