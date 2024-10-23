@@ -33,11 +33,11 @@ template<typename Key>
 struct Keys {
     typedef typename Key::size_type size_type;
     typedef py::array_t<size_type> array_type;  // array<std::uint32_t>
-    array_type& indices;
+    array_type indices;
 
-    Keys(array_type& indices) : indices(indices) {}
+    Keys(array_type indices) : indices(indices) {}
 
-    size_type add_up(const Keys& keys) {
+    size_type add_up() {
         size_type sum = 0;
         auto r = indices.unchecked<1>();
         for (py::ssize_t i = 0; i < r.shape(0); i++)
