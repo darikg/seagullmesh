@@ -37,6 +37,18 @@ struct Keys {
 
     Keys(array_type indices) : indices(indices) {}
 
+    template<typename Range>
+    static Keys from_range(size_type n, const Range& key_range) {
+        py::array_t<size_type, py::array::c_style> indices({n});
+        auto r = indices.mutable_unchecked<1>();
+        py::size_t i = 0;
+        for (Key k : key_range) {
+            r(i) = size_type(k);
+            i++;
+        }
+        return Keys{indices};
+    }
+
     size_type add_up() {
         size_type sum = 0;
         auto r = indices.unchecked<1>();
@@ -51,6 +63,9 @@ void init_mesh(py::module &m) {
 
     py::class_<Keys<V>>(sub, "MyVertices")
         .def(py::init<Keys<V>::array_type&>())
+        .def(py::init([](const Mesh3& mesh) {
+            return Keys<V>::from_range(mesh.number_of_vertices(), mesh.vertices());
+        }))
         .def("add_up", &Keys<V>::add_up)
     ;
 

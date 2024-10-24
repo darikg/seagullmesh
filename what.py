@@ -28,8 +28,5 @@ def tetrahedron_mesh() -> Mesh3:
 
 
 mesh = Mesh3.from_polygon_soup(*tetrahedron())
-pmap = mesh.halfedge_data.add_property('foo', default=False)
-print(sgm.mesh.Halfedge(0))
-# print(mesh.mesh.first_halfedge)
-print(mesh.mesh.halfedges)
-print(pmap.pmap[mesh.mesh.halfedges])
+verts = sgm.mesh.MyVertices(mesh.mesh)
+print(verts)
