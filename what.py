@@ -29,4 +29,4 @@ def tetrahedron_mesh() -> Mesh3:
 
 mesh = Mesh3.from_polygon_soup(*tetrahedron())
 verts = sgm.mesh.MyVertices(mesh.mesh)
-print(verts)
+print(verts.indices)

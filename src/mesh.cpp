@@ -36,7 +36,6 @@ struct Keys {
     array_type indices;
 
     Keys(array_type indices) : indices(indices) {}
-
     template<typename Range>
     static Keys from_range(size_type n, const Range& key_range) {
         py::array_t<size_type, py::array::c_style> indices({n});
@@ -67,6 +66,7 @@ void init_mesh(py::module &m) {
             return Keys<V>::from_range(mesh.number_of_vertices(), mesh.vertices());
         }))
         .def("add_up", &Keys<V>::add_up)
+        .def_property_readonly("indices", [](const Keys<V>& keys) {return keys.indices;})
     ;
 
     define_simple_type_2<Point2>(sub, "Point2");
