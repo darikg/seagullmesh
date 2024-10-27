@@ -1,5 +1,6 @@
 typedef boost::iterator_facade<Index_iterator<Key>, Key, std::random_access_iterator_tag, Key> Facade;
 
+
 class Index_iterator : public Facade {
     public:
         Index_iterator() : i(0) {}

@@ -2,6 +2,7 @@
 #include "util.hpp"
 
 #include <boost/range/algorithm.hpp>
+#include <boost/range/adaptor/transformed.hpp>
 #include <pybind11/stl_bind.h>
 
 #include <CGAL/Polygon_mesh_processing/polygon_soup_to_polygon_mesh.h>
@@ -48,12 +49,15 @@ struct Keys {
         return Keys{indices};
     }
 
-    size_type add_up() {
-        size_type sum = 0;
-        auto r = indices.unchecked<1>();
-        for (py::ssize_t i = 0; i < r.shape(0); i++)
-            sum += r(i);
-        return sum;
+    static Key from_size_type(size_type i) {return Key(i);}
+
+    auto to_list() {
+        std::vector<Key> out;
+        auto r = indices | boost::adaptors::transformed(&from_size_type);
+        for (Key k : r) {
+            out.emplace_back(k);
+        }
+        return out;
     }
 };
 
@@ -65,7 +69,7 @@ void init_mesh(py::module &m) {
         .def(py::init([](const Mesh3& mesh) {
             return Keys<V>::from_range(mesh.number_of_vertices(), mesh.vertices());
         }))
-        .def("add_up", &Keys<V>::add_up)
+        .def("to_list", &Keys<V>::to_list)
         .def_property_readonly("indices", [](const Keys<V>& keys) {return keys.indices;})
     ;
 
