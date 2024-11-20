@@ -283,10 +283,10 @@ void init_mesh(py::module &m) {
             return std::vector<E>(edges.begin(), edges.end());
         })
         .def("vertex_degrees", [](const Mesh3& mesh, const std::vector<V>& verts) {
-            int n = verts.size();
-            py::array_t<Mesh3::size_type> degrees({size_t(n)});
+            size_t n = verts.size();
+            py::array_t<Mesh3::size_type> degrees({py::ssize_t(n)});
             auto r = degrees.mutable_unchecked<1>();
-            for (int i = 0; i < n; ++i) {
+            for (size_t i = 0; i < n; ++i) {
                 r(i) = mesh.degree(verts[i]);
             }
             return degrees;
