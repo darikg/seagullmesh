@@ -20,7 +20,7 @@ PYBIND11_MODULE(_seagullmesh, m) {
     init_properties(m);
 //    init_corefine(m);
 //    init_meshing(m);
-//    init_locate(m);
+    init_locate(m);
 //    init_parametrize(m);
 //    init_triangulate(m);
 //    init_border(m);

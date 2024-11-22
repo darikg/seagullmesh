@@ -122,7 +122,7 @@ ext_modules = [
             'src/properties.cpp',
             # 'src/corefine.cpp',
             # 'src/meshing.cpp',
-            # 'src/locate.cpp',
+            'src/locate.cpp',
             # 'src/parametrize.cpp',
             # 'src/triangulate.cpp',
             # 'src/border.cpp',
