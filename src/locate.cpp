@@ -45,16 +45,16 @@ typedef typename CGAL::AABB_traits_3<Kernel, AABB_primitive2>                   
 typedef typename CGAL::AABB_tree<AABB_traits2>                                      AABB_Tree2;
 
 
-template<unsigned int N, typename Point, typename VPM>
+template<size_t N, typename Point, typename VPM>
 auto construct_points(
         const Mesh3& mesh,
         const std::vector<F>& faces,
         const py::array_t<double>& bary_coords,
         const VPM& vertex_point_map
 ) {
-    size_t nf = faces.size();
+    const size_t nf = faces.size();
     auto rbc = bary_coords.unchecked<2>();
-    size_t nb = size_t(rbc.shape(0));
+    const size_t nb = size_t(rbc.shape(0));
     if (nf != nb) {
         throw std::runtime_error("number of faces doesn't match number of points");
     }
@@ -145,30 +145,30 @@ void init_locate(py::module &m) {
             auto pts = array_to_points_2(points);
             return locate_points(mesh, tree, pts, vertex_point_map);
         })
-//        .def("construct_points", [](
-//                const Mesh3& mesh,
-//                const std::vector<F>& faces,
-//                const py::array_t<double>& bary_coords,
-//                const VertPoints3& vertex_point_map
-//        ){
-//            return construct_points<3, Point3, VertPoints3>(mesh, faces, bary_coords, mesh.points());
-//        })
-//        .def("construct_points", [](
-//                const Mesh3& mesh,
-//                const std::vector<F>& faces,
-//                const py::array_t<double>& bary_coords,
-//                const VertPoints3& vertex_point_map
-//        ){
-//            return construct_points<3, Point3, VertPoints3>(mesh, faces, bary_coords, vertex_point_map);
-//        })
-//        .def("construct_points", [](
-//                const Mesh3& mesh,
-//                const std::vector<F>& faces,
-//                const py::array_t<double>& bary_coords,
-//                const VertPoints2& vertex_point_map
-//        ){
-//            return construct_points<2, Point2, VertPoints2>(mesh, faces, bary_coords, vertex_point_map);
-//        })
+        .def("construct_points", [](
+                const Mesh3& mesh,
+                const std::vector<F>& faces,
+                const py::array_t<double>& bary_coords,
+                const VertPoints3& vertex_point_map
+        ){
+            return construct_points<3, Point3, VertPoints3>(mesh, faces, bary_coords, mesh.points());
+        })
+        .def("construct_points", [](
+                const Mesh3& mesh,
+                const std::vector<F>& faces,
+                const py::array_t<double>& bary_coords,
+                const VertPoints3& vertex_point_map
+        ){
+            return construct_points<3, Point3, VertPoints3>(mesh, faces, bary_coords, vertex_point_map);
+        })
+        .def("construct_points", [](
+                const Mesh3& mesh,
+                const std::vector<F>& faces,
+                const py::array_t<double>& bary_coords,
+                const VertPoints2& vertex_point_map
+        ){
+            return construct_points<2, Point2, VertPoints2>(mesh, faces, bary_coords, vertex_point_map);
+        })
         .def("shortest_path", [](
                 const Mesh3& mesh,
                 const F src_face, const std::vector<double>& src_bc,
