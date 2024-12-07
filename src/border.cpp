@@ -48,9 +48,9 @@ void init_border(py::module &m) {
         })
         .def("trace_boundary_from_vertex", [](const Mesh3& mesh, V v) {
             std::vector<V> verts;
-            for (H h0 : halfedges_around_source(v, mesh)) {
-                if mesh.is_border(h0) {
-                    for (H h1 : halfedges_around_face(h0)) {  // around the null face
+            for ( H h0 : halfedges_around_source(v, mesh) ) {
+                if ( mesh.is_border(h0) ) {
+                    for (H h1 : halfedges_around_face(h0, mesh)) {  // around the null face
                         verts.emplace_back(mesh.source(h1));
                     }
                     return verts;

@@ -49,6 +49,17 @@ class Mesh3:
         else:
             warnings.warn("properties module not available")
 
+        self._vertex_point_map: PropertyMap[Vertex, Point3] | None = None
+
+    @property
+    def vertex_point_map(self) -> PropertyMap[Vertex, Point3]:
+        if self._vertex_point_map is None:
+            self._vertex_point_map = self.vertex_data.find_property_map(
+                sgm.properties.V_Point3_PropertyMap,
+                name='v:point',
+            )
+        return self._vertex_point_map
+
     @property
     def vertices(self) -> sgm.mesh.Vertices:
         """Vector of vertex indices"""
@@ -1019,15 +1030,34 @@ class MeshData(Generic[Key]):
         pmap = self._data.pop(key)
         sgm.properties.remove_property_map(self._mesh, pmap.pmap)
 
+    def find_property_map(
+            self,
+            pmap_cls: type,
+            name: str,
+            wrapper_cls: Type[PropertyMap] | None = None,
+    ) -> PropertyMap[Key]:
+        # Finds a pre-existing pmap, wraps it, and returns it without adding it to self
+        pmap = pmap_cls.get_property_map(self._mesh, name)  # noqa
+        if pmap is None:
+            raise KeyError(f"Property map {pmap_cls} {name} doesn't exist")
+        return self.wrap_property_map(pmap, wrapper_cls=wrapper_cls)
+
+    def wrap_property_map(
+            self,
+            pmap,  # the c++ class,
+            wrapper_cls: Type[PropertyMap] | None = None,
+    ) -> PropertyMap[Key]:
+        if wrapper_cls is None:
+            wrapper_cls = ScalarPropertyMap if pmap._is_scalar else ArrayPropertyMap
+        return wrapper_cls(pmap=pmap, data=self)
+
     def assign_property_map(
             self,
             name: str,
             pmap,  # The C++ property map
             wrapper_cls: Type[PropertyMap] | None = None
     ) -> PropertyMap:
-        if wrapper_cls is None:
-            wrapper_cls = ScalarPropertyMap if pmap._is_scalar else ArrayPropertyMap
-        wrapped_pmap = self._data[name] = wrapper_cls(pmap=pmap, data=self)
+        wrapped_pmap = self._data[name] = self.wrap_property_map(pmap, wrapper_cls)
         return wrapped_pmap
 
     def get_property_map(self, key: str | PropertyMap[Key, Val]) -> PropertyMap[Key, Val]:
@@ -1083,12 +1113,10 @@ class MeshData(Generic[Key]):
         yield from self._data.__iter__()
 
 
-def _copy_property_metadata(src_data: MeshData, dest_mesh: _Mesh3, dest_data: MeshData):
+def _copy_property_metadata(src_data: MeshData, dest_data: MeshData):
     for name, pmap_wrapper in src_data.items():
-        dest_pmap = type(pmap_wrapper.pmap).get_property_map(dest_mesh, name)
-        if dest_pmap is None:
-            raise KeyError(f"Property map {name} doesn't exist in destination {type(dest_data)}")
-        dest_data.assign_property_map(name, dest_pmap, wrapper_cls=type(pmap_wrapper))
+        dest_data[name] = dest_data.find_property_map(
+            pmap_cls=type(pmap_wrapper.pmap), name=name, wrapper_cls=type(pmap_wrapper))
 
 
 class TubeMesher:
