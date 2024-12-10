@@ -4,9 +4,9 @@
 
 namespace PMP = CGAL::Polygon_mesh_processing;
 
-typedef Mesh3::Property_map<V, int>      VertexIndex;
-typedef Mesh3::Property_map<F, std::size_t>      FaceIndex;
-typedef Mesh3::Property_map<E, bool>             EdgeConstrainedMap;
+typedef Mesh3::Property_map<V, std::size_t>         VertexIndex;
+typedef Mesh3::Property_map<F, std::size_t>         FaceIndex;
+typedef Mesh3::Property_map<E, bool>                EdgeBool;
 
 
 struct CorefinementVertexTracker : public PMP::Corefinement::Default_visitor<Mesh3> {
@@ -99,16 +99,15 @@ void init_corefine(py::module &m) {
     })
     .def("corefine", [](
             Mesh3& mesh1, Mesh3& mesh2, 
-            EdgeConstrainedMap& ecm1, EdgeConstrainedMap& ecm2,
+            EdgeBool& ecm1, EdgeBool& ecm2,
             CorefinementVertexTracker& tracker) {
-
         auto params1 = PMP::parameters::visitor(tracker).edge_is_constrained_map(ecm1);
         auto params2 = PMP::parameters::edge_is_constrained_map(ecm2);
         PMP::corefine(mesh1, mesh2, params1, params2);
     })
     .def("corefine", [](
             Mesh3& mesh1, Mesh3& mesh2,
-            EdgeConstrainedMap& ecm1, EdgeConstrainedMap& ecm2,
+            EdgeBool& ecm1, EdgeBool& ecm2,
             CorefinementVertexFaceTracker& tracker) {
 
         auto params1 = PMP::parameters::visitor(tracker).edge_is_constrained_map(ecm1);
@@ -153,8 +152,20 @@ void init_corefine(py::module &m) {
     })
     .def("union", [](
             Mesh3& mesh1, Mesh3& mesh2,
-            EdgeConstrainedMap& ecm1, EdgeConstrainedMap& ecm2,
+            EdgeBool& ecm1, EdgeBool& ecm2,
             CorefinementVertexTracker& tracker) {
+
+        auto params1 = PMP::parameters::visitor(tracker).edge_is_constrained_map(ecm1);
+        auto params2 = PMP::parameters::edge_is_constrained_map(ecm2);
+        bool success = PMP::corefine_and_compute_union(mesh1, mesh2, mesh1, params1, params2);
+        if (!success) {
+            throw std::runtime_error("Boolean operation failed.");
+        }
+    })
+    .def("union", [](
+            Mesh3& mesh1, Mesh3& mesh2,
+            EdgeBool& ecm1, EdgeBool& ecm2,
+            CorefinementVertexFaceTracker& tracker) {
 
         auto params1 = PMP::parameters::visitor(tracker).edge_is_constrained_map(ecm1);
         auto params2 = PMP::parameters::edge_is_constrained_map(ecm2);

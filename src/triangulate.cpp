@@ -91,7 +91,7 @@ class TubeMesher {
         return out;
     }
 
-    struct TriangulateCapVisitor : public PMP::PMPTriangulateFaceVisitor, public PMP::PMPHolefillingVisitor  {
+    struct TriangulateCapVisitor : public PMP::PMPTriangulateFaceVisitor<Mesh3>, public PMP::PMPHolefillingVisitor<Mesh>  {
         void after_subface_created(F f) {is_cap_map[f] = true;}
     };
 
