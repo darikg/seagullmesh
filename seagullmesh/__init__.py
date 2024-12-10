@@ -1026,7 +1026,8 @@ class TubeMesher:
         mesh = self.mesh = Mesh3()
         t_map = mesh.vertex_data.add_property('t', default=-1.0)
         theta_map = mesh.vertex_data.add_property('theta', default=-1.0)
-        self.tube_mesher = sgm.triangulate.TubeMesher(mesh.mesh, t_map.pmap, theta_map.pmap, t0, theta0, pts0)
+        is_cap_map = mesh.face_data.add_property('is_cap', default=False)
+        self.tube_mesher = sgm.triangulate.TubeMesher(mesh.mesh, t_map.pmap, theta_map.pmap, is_cap_map.pmap, t0, theta0, pts0)
 
         self.closed = closed
         if closed:
@@ -1040,7 +1041,6 @@ class TubeMesher:
             self.tube_mesher.close_xs(True)
 
         sgm.triangulate.triangulate_faces(self.mesh.mesh, self.mesh.faces)
-        self.mesh.collect_garbage()
         if reverse_orientation:
             sgm.triangulate.reverse_face_orientations(self.mesh.mesh, self.mesh.faces)
 

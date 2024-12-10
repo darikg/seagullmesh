@@ -63,12 +63,15 @@ py::array_t<size_t> constrained_contour_pair_mesh(
     return faces;
 }
 
+
 class TubeMesher {
     private:
 
     Mesh3& mesh;
     VertDouble& t_map;
     VertDouble& theta_map;
+    FaceBool& is_cap_map;
+
     std::map<double, V> prev_xs;
 
     std::map<double, V> _add_xs(const double t, const py::array_t<double>& theta, const py::array_t<double>& pts) {
@@ -88,16 +91,21 @@ class TubeMesher {
         return out;
     }
 
+    struct TriangulateCapVisitor : public PMP::PMPTriangulateFaceVisitor, public PMP::PMPHolefillingVisitor  {
+        void after_subface_created(F f) {is_cap_map[f] = true;}
+    };
+
     public:
 
     TubeMesher(
             Mesh3& mesh,
             VertDouble& t_map,
-            VertDouble& theta_map, 
+            VertDouble& theta_map,
+            FaceBool& is_cap_map,
             const double t0, 
             const py::array_t<double>& theta0, 
             const py::array_t<double>& pts0
-        ) : mesh(mesh), t_map(t_map), theta_map(theta_map) {
+        ) : mesh(mesh), t_map(t_map), theta_map(theta_map), is_cap_map(is_cap_map) {
             prev_xs = _add_xs(t0, theta0, pts0);
     }
     void add_xs(double t, const py::array_t<double>& theta, const py::array_t<double>& pts) {
@@ -146,7 +154,8 @@ class TubeMesher {
             std::reverse(face.begin(), face.end());
         }
 
-        mesh.add_face(face);
+        F f = mesh.add_face(face);
+        PMP::triangulate_face(f, mesh, PMP::parameters::visitor(TriangulateCapVisitor()));
     }
 };
 
