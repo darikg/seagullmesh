@@ -74,7 +74,11 @@ class TubeMesher {
 
     std::map<double, V> prev_xs;
 
-    std::map<double, V> _add_xs(const double t, const py::array_t<double>& theta, const py::array_t<double>& pts) {
+    std::map<double, V> add_points_and_radial_edges(
+            const double t,
+            const py::array_t<double>& theta,
+            const py::array_t<double>& pts,
+    ) {
         const size_t n = pts.shape(0);
         auto r_pts = pts.unchecked<2>();
         auto r_theta = theta.unchecked<1>();
@@ -102,17 +106,18 @@ class TubeMesher {
             VertDouble& t_map,
             VertDouble& theta_map,
             FaceBool& is_cap_map,
-            const double t0, 
-            const py::array_t<double>& theta0, 
-            const py::array_t<double>& pts0
-        ) : mesh(mesh), t_map(t_map), theta_map(theta_map), is_cap_map(is_cap_map) {
-            prev_xs = _add_xs(t0, theta0, pts0);
-    }
+        ) : mesh(mesh), t_map(t_map), theta_map(theta_map), is_cap_map(is_cap_map) {}
+
     void add_xs(double t, const py::array_t<double>& theta, const py::array_t<double>& pts) {
-        std::map<double, V> next_xs = _add_xs(t, theta, pts);
+        std::map<double, V> next_xs = add_points_and_radial_edges(t, theta, pts);
+        if (prev_xs.size() == 0) {
+            // Must be the first xs
+            prev_xs = next_xs;
+            return;
+        }
+
         std::vector<V> face;
         double theta0 = 0, theta1 = 0;
-
         while (theta0 < 2 * CGAL_PI) {
             // Initialize face with axial edge from prev_xs to next_xs
             face.clear();
