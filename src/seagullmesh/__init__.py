@@ -961,14 +961,16 @@ class Mesh3:
 
     def label_connected_components(
             self,
-            face_patches: str | PropertyMap[Face, int] | None = None,
-            edge_is_constrained: str | PropertyMap[Edge, bool] | None = None,
+            face_patches: str | PropertyMap[Face, int] = '_face_patch',
+            edge_is_constrained: str | PropertyMap[Edge, bool] ='_ecm',
     ) -> int:
         # Returns number of components
-        face_patches = self.face_data.get(face_patches, default=0, dtype='uint32')
-        with self.edge_data.get_or_temp(edge_is_constrained, '_ecm', default=False) as ecm:
-            return sgm.connected.label_connected_components(
-                self.mesh, face_patches.pmap, ecm.pmap)
+
+        with (
+            self.face_data.get_or_temp(face_patches, '_face_patch', default=0, dtype='uint32') as face_patches,
+            self.edge_data.get_or_temp(edge_is_constrained, '_ecm', default=False) as ecm,
+        ):
+            return sgm.connected.label_connected_components(self.mesh, face_patches.pmap, ecm.pmap)
 
     def remove_connected_face_patches(
             self,
