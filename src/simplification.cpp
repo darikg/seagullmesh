@@ -1,5 +1,6 @@
 #include "seagullmesh.hpp"
 #include <CGAL/Surface_mesh_simplification/edge_collapse.h>
+#include <CGAL/Surface_mesh_simplification/Edge_collapse_visitor_base.h>
 #include <CGAL/Surface_mesh_simplification/Policies/Edge_collapse/Edge_count_stop_predicate.h>
 #include <CGAL/Surface_mesh_simplification/Policies/Edge_collapse/Face_count_stop_predicate.h>
 #include <CGAL/Surface_mesh_simplification/Policies/Edge_collapse/Edge_count_ratio_stop_predicate.h>
@@ -16,13 +17,27 @@ typedef SMS::Face_count_ratio_stop_predicate<Mesh3>     FaceCountRatio;
 typedef SMS::Edge_length_stop_predicate<Kernel::FT>     EdgeLength;
 
 typedef Mesh3::Property_map<E, bool>                    EdgeBool;
-
+typedef SMS::Edge_profile<Mesh3>                        EdgeProfile;
 
 template <typename T>
 auto do_edge_collapse(Mesh3& mesh, const T& stop_policy, EdgeBool& edge_is_constrained) {
     auto np = CGAL::parameters::edge_is_constrained_map(edge_is_constrained);
     return SMS::edge_collapse(mesh, stop_policy, np);
 }
+
+
+struct EdgeCollapseTracker : public SMS::Edge_collapse_visitor_base<Mesh3> {
+  void OnCollapsing(const EdgeProfile&, std::optional<Point3> placement) {
+    if(!placement) {
+        //
+    }
+  }
+  // Called after each edge has been collapsed
+  void OnCollapsed(const EdgeProfile&, const V v) {
+
+  }
+
+};
 
 
 void init_simplification(py::module &m) {
