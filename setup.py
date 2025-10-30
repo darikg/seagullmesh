@@ -73,9 +73,9 @@ if cgal_version >= (5, 0):
 if conda_prefix:
 
     if sys.platform.startswith('win'):
-        prefix = os.path.join(sys.prefix, 'Library\\')
+        prefix = os.path.join(conda_prefix, 'Library\\')
     else:
-        prefix = sys.prefix
+        prefix = conda_prefix
 
     print("Looking for CGAL in: ", prefix)
 
@@ -139,7 +139,8 @@ ext_modules = [
         ],
         include_dirs=include_dirs,
         library_dirs=library_dirs,
-        libraries=cgal_libs + ['mpfr',
+        libraries=cgal_libs + [
+                   'mpfr',
                    'gmp',
                    'boost_thread-mt' if boost_mt else 'boost_thread',
                    'boost_atomic-mt' if boost_mt else 'boost_atomic',

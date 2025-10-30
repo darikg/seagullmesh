@@ -7,9 +7,21 @@ assorted extras.
 ## Installation
 
 ```shell
-# pyvista and ceres-solver are optional
-conda create --name seagull -c conda-forge cgal-cpp pybind11 eigen ceres-solver pyvista
+conda create --name seagull -c conda-forge cgal-cpp pybind11 eigen gmp mpfr 
 conda activate seagull
+```
+
+Pyvista is used as a plotting utility in several bindings, but is completely optional. This can be installed
+into the conda environment via pip:
+
+```shell
+pip install pyvista
+```
+
+Ceres-solver is used in the mesh smoothing module. This module functions without ceres-solver as well, so this dependency is optional. This can be installed with conda:
+
+```shell
+conda install -c conda-forge ceres-solver
 ```
 
 On linux, you'll also need
