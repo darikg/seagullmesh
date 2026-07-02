@@ -33,10 +33,11 @@ class Skeleton:
     def radii(self) -> np.ndarray:
         return self._skeleton.compute_radii(self.mesh.mesh)
 
-    def to_pyvista(self):
+    def to_pyvista(self) -> pv.PolyData:
         import pyvista as pv
         sk_mesh = pv.PolyData()
         sk_mesh.points = self.points
         sk_mesh.lines = pv.CellArray.from_regular_cells(self.edges)
         sk_mesh.point_data['min_radius'] = self.radii[:, 0]
         sk_mesh.point_data['max_radius'] = self.radii[:, 1]
+        return sk_mesh
